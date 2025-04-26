@@ -11,15 +11,80 @@ const ChatContainer = styled.div`
   border-radius: 10px;
   border: 2px solid #ff5500;
   box-shadow: 0 0 20px rgba(255, 85, 0, 0.3);
+  height: 90vh;
+  display: flex;
+  flex-direction: column;
+`;
+
+const Header = styled.h1`
+  color: #ff5500;
+  text-align: center;
+  margin-bottom: 20px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+`;
+
+const LiveMatchPanel = styled.div`
+  background: rgba(0, 0, 0, 0.7);
+  padding: 15px;
+  margin-bottom: 15px;
+  border-radius: 5px;
+  border: 1px solid #ff5500;
+  color: white;
+  text-align: center;
+  font-family: "Arial Black", sans-serif;
+`;
+
+const MatchTitle = styled.h3`
+  margin: 0 0 5px 0;
+  color: #ff5500;
+`;
+
+const MatchScore = styled.p`
+  margin: 5px 0;
+  font-size: 1.2rem;
+`;
+
+const MatchStats = styled.div`
+  display: flex;
+  justify-content: space-around;
+  margin-top: 10px;
+  font-size: 0.9rem;
+`;
+
+const CheerBanner = styled.div`
+  background: linear-gradient(to right, #ff5500, #ff9900);
+  color: black;
+  padding: 10px;
+  text-align: center;
+  margin: 0 15px 15px;
+  border-radius: 5px;
+  font-weight: bold;
+  animation: pulse 1.5s infinite;
+
+  @keyframes pulse {
+    0% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.03);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
 `;
 
 const MessageList = styled.div`
-  height: 400px;
+  flex: 1;
   overflow-y: auto;
   padding: 15px;
-  margin-bottom: 15px;
   background: #1e1e1e;
   border-radius: 8px;
+  margin-bottom: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 
   &::-webkit-scrollbar {
     width: 6px;
@@ -32,69 +97,49 @@ const MessageList = styled.div`
 `;
 
 const Message = styled.div`
-  padding: 10px;
-  margin-bottom: 10px;
-  background: ${(props) => (props.isBot ? "#ff550022" : "#2a2a2a")};
-  color: ${(props) => (props.isBot ? "#ff5500" : "white")};
+  padding: 12px 15px;
+  background: ${(props) =>
+    props.$isBot ? "#ff550022" : props.$isUser ? "#ff5500" : "#2a2a2a"};
+  color: ${(props) =>
+    props.$isBot ? "#ff5500" : props.$isUser ? "#000" : "#fff"};
   border-radius: ${(props) =>
-    props.isBot ? "5px 5px 5px 0" : "5px 5px 0 5px"};
-  border-left: ${(props) => (props.isBot ? "3px solid #ff5500" : "none")};
-  font-style: ${(props) => (props.isBot ? "italic" : "normal")};
+    props.$isUser ? "15px 15px 0 15px" : "15px 15px 15px 0"};
+  align-self: ${(props) => (props.$isUser ? "flex-end" : "flex-start")};
+  max-width: 80%;
 `;
 
-const LiveMatchPanel = styled.div`
-  background: rgba(0, 0, 0, 0.7);
-  padding: 10px;
-  margin-bottom: 15px;
-  border-radius: 5px;
-  border: 1px solid #ff5500;
-  color: white;
-  text-align: center;
-  font-family: "Arial Black", sans-serif;
-`;
-
-const MatchStats = styled.div`
+const MessageHeader = styled.div`
   display: flex;
-  justify-content: space-around;
-  margin-top: 8px;
-  font-size: 0.9rem;
+  justify-content: space-between;
+  margin-bottom: 5px;
 `;
 
-const CheerBanner = styled.div`
-  background: linear-gradient(to right, #ff5500, #ff9900);
-  color: black;
-  padding: 8px;
-  text-align: center;
-  margin-bottom: 10px;
-  border-radius: 5px;
+const Username = styled.span`
   font-weight: bold;
-  animation: pulse 1.5s infinite;
-
-  @keyframes pulse {
-    0% {
-      transform: scale(1);
-    }
-    50% {
-      transform: scale(1.02);
-    }
-    100% {
-      transform: scale(1);
-    }
-  }
 `;
 
-const InputForm = styled.form`
+const MessageTime = styled.span`
+  font-size: 0.8rem;
+  color: ${(props) => (props.$isUser ? "#333" : "#888")};
+  margin-left: 10px;
+`;
+
+const InputContainer = styled.form`
   display: flex;
   gap: 10px;
+  padding: 10px;
+  background: #2a2a2a;
+  border-radius: 8px;
 `;
 
 const MessageInput = styled.input`
   flex: 1;
-  padding: 12px;
+  padding: 12px 20px;
   border: none;
   border-radius: 25px;
   background: #1e1e1e;
   color: white;
+  font-size: 14px;
   outline: none;
 
   &::placeholder {
@@ -102,25 +147,8 @@ const MessageInput = styled.input`
   }
 `;
 
-const SendButton = styled.button`
-  padding: 0 25px;
-  background: #ff5500;
-  color: black;
-  border: none;
-  border-radius: 25px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all 0.3s;
-
-  &:hover {
-    background: #ff7700;
-  }
-`;
-
-const CheerButton = styled.button`
+const ActionButton = styled.button`
   padding: 0 20px;
-  background: linear-gradient(to right, #ff5500, #ff9900);
-  color: black;
   border: none;
   border-radius: 25px;
   font-weight: bold;
@@ -129,14 +157,21 @@ const CheerButton = styled.button`
   display: flex;
   align-items: center;
   gap: 5px;
+`;
 
+const SendButton = styled(ActionButton)`
+  background: #ff5500;
+  color: black;
+  &:hover {
+    background: #ff7700;
+  }
+`;
+
+const CheerButton = styled(ActionButton)`
+  background: linear-gradient(to right, #ff5500, #ff9900);
+  color: black;
   &:hover {
     background: linear-gradient(to right, #ff7700, #ffbb00);
-    transform: scale(1.05);
-  }
-
-  &:active {
-    transform: scale(0.98);
   }
 `;
 
@@ -184,7 +219,6 @@ function ChatPage() {
       }));
     });
 
-    // New cheer events
     socket.current.on("cheer_update", (data) => {
       setCheerCount(data.count);
       setLastCheerUser(data.user);
@@ -192,7 +226,7 @@ function ChatPage() {
 
     socket.current.on("special_event", (data) => {
       setLiveEvents((prev) => [...prev, data.message]);
-      setCheerCount(0); // Reset after special event
+      setCheerCount(0);
     });
 
     return () => {
@@ -230,16 +264,16 @@ function ChatPage() {
 
   return (
     <ChatContainer>
-      <h1 style={{ color: "#ff5500", textAlign: "center" }}>FURIA CHAT</h1>
+      <Header>FURIA CHAT</Header>
 
       <LiveMatchPanel>
         {matchData ? (
           <>
-            <h3>⚡ {matchData.event || "FURIA Match"}</h3>
-            <p>
+            <MatchTitle>⚡ {matchData.event || "FURIA Match"}</MatchTitle>
+            <MatchScore>
               {matchData.team1 || "FURIA"} {matchData?.score || "0 x 0"}{" "}
               {matchData.team2 || "Opponent"}
-            </p>
+            </MatchScore>
             <MatchStats>
               <span>Round: {matchData.round || "1"}</span>
               <span>Map: {matchData.map || "Mirage"}</span>
@@ -260,25 +294,32 @@ function ChatPage() {
 
       <MessageList>
         {liveEvents.map((event, index) => (
-          <Message key={`event-${index}`} isBot>
-            🔴 {event}
+          <Message key={`event-${index}`} $isBot>
+            <MessageHeader>
+              <Username>FURIA Bot</Username>
+              <MessageTime>
+                {new Date().toLocaleTimeString([], { timeStyle: "short" })}
+              </MessageTime>
+            </MessageHeader>
+            {event}
           </Message>
         ))}
 
         {messages.map((msg, index) => (
-          <Message key={`msg-${index}`}>
-            <strong>{msg.username}:</strong> {msg.message}
-            <span
-              style={{ fontSize: "0.8rem", color: "#888", marginLeft: "10px" }}
-            >
-              {msg.time}
-            </span>
+          <Message key={`msg-${index}`} $isUser={msg.username === "Você"}>
+            <MessageHeader>
+              <Username>{msg.username}</Username>
+              <MessageTime $isUser={msg.username === "Você"}>
+                {msg.time}
+              </MessageTime>
+            </MessageHeader>
+            {msg.message}
           </Message>
         ))}
         <div ref={messagesEndRef} />
       </MessageList>
 
-      <InputForm onSubmit={handleSendMessage}>
+      <InputContainer onSubmit={handleSendMessage}>
         <MessageInput
           type="text"
           value={newMessage}
@@ -293,17 +334,10 @@ function ChatPage() {
         >
           🔥 VAMO!
         </CheerButton>
-        <SendButton
-          type="submit"
-          disabled={!isConnected}
-          style={{
-            background: !isConnected ? "#555" : "#ff5500",
-            cursor: !isConnected ? "not-allowed" : "pointer",
-          }}
-        >
-          {isConnected ? "ENVIAR" : "CONECTANDO..."}
+        <SendButton type="submit" disabled={!isConnected}>
+          {isConnected ? "ENVIAR" : "..."}
         </SendButton>
-      </InputForm>
+      </InputContainer>
     </ChatContainer>
   );
 }
