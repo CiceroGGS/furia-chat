@@ -1,72 +1,98 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { io } from "socket.io-client";
+import {
+  ChatContainer,
+  ChatHeader,
+  MessageList,
+  Message,
+  MessageInputContainer,
+  MessageInput,
+  SendButton,
+  FuriaLogo,
+  UserBadge,
+  Timestamp,
+} from "./components/ChatStyles";
+import furiaLogo from "./assets/furia-esports-logo.png";
 
 const socket = io("http://localhost:5000");
 
-function App() {
+const App = () => {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
-  const [username, setUsername] = useState("");
+  const [username] = useState(`FURIA Fan #${Math.floor(Math.random() * 1000)}`);
+  const messagesEndRef = useRef(null);
 
-  const handleSendMessage = () => {
-    if (message.trim() !== "" && username.trim() !== "") {
-      const messageData = { username, message };
-      socket.emit("send_message", messageData);
-      setMessage("");
-    }
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter") {
-      handleSendMessage();
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const handleSendMessage = () => {
+    if (message.trim() !== "") {
+      const messageData = {
+        message,
+        username,
+        time: new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      };
+      socket.emit("send_message", messageData);
+      setMessage("");
     }
   };
 
   useEffect(() => {
     fetch("http://localhost:5000/api/chat")
       .then((response) => response.json())
-      .then((data) => {
-        setMessages(data);
-      })
+      .then((data) => setMessages(data))
       .catch((error) => console.error("Erro ao carregar mensagens:", error));
 
     socket.on("receive_message", (newMessage) => {
       setMessages((prevMessages) => [...prevMessages, newMessage]);
     });
 
-    return () => {
-      socket.off("receive_message");
-    };
+    return () => socket.off("receive_message");
   }, []);
 
   return (
-    <div>
-      <div>
-        <input
-          type="text"
-          placeholder="Digite seu nome"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-        />
-      </div>
-      <div>
-        {messages.map((msg, index) => (
-          <div key={index}>
-            <strong>{msg.username}</strong>: {msg.message}
-          </div>
-        ))}
-      </div>
+    <div className="app-background">
+      <ChatContainer>
+        <ChatHeader>
+          <FuriaLogo src={furiaLogo} alt="FURIA Logo" />
+          <h1>FURIA CHAT</h1>
+        </ChatHeader>
 
-      <input
-        type="text"
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder="Digite sua mensagem"
-      />
-      <button onClick={handleSendMessage}>Enviar</button>
+        <MessageList>
+          {messages.map((msg, index) => (
+            <Message key={index} isUser={msg.username === username}>
+              <UserBadge isUser={msg.username === username}>
+                {msg.username} <Timestamp>{msg.time}</Timestamp>
+              </UserBadge>
+              <p>{msg.message}</p>
+            </Message>
+          ))}
+          <div ref={messagesEndRef} />
+        </MessageList>
+
+        <MessageInputContainer>
+          <MessageInput
+            type="text"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+            placeholder="Envie um grito de guerra! 🔥"
+          />
+          <SendButton onClick={handleSendMessage}>
+            <span>Enviar</span> 🚀
+          </SendButton>
+        </MessageInputContainer>
+      </ChatContainer>
     </div>
   );
-}
+};
 
 export default App;
