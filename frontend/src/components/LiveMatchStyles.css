@@ -1,25 +1,4 @@
 /* Animations */
-.details-enter {
-  opacity: 0;
-  max-height: 0;
-  overflow: hidden;
-}
-.details-enter-active {
-  opacity: 1;
-  max-height: 500px;
-  transition: all 300ms ease-in;
-}
-.details-exit {
-  opacity: 1;
-  max-height: 500px;
-}
-.details-exit-active {
-  opacity: 0;
-  max-height: 0;
-  transition: all 300ms ease-out;
-}
-
-/* Pulse effect for live matches */
 .live-match-panel {
   animation: pulse 2s infinite;
 }
@@ -36,13 +15,18 @@
   }
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .teams-container {
+    flex-direction: column;
+    gap: 10px;
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+
+  .team-score {
+    font-size: 1.5rem;
+  }
+
+  .vs {
+    margin: 10px 0;
   }
 }

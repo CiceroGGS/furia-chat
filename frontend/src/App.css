@@ -229,3 +229,35 @@ textarea:focus {
     padding: 1rem;
   }
 }
+
+/* Garanta estilos básicos */
+body {
+  background-color: #121212; /* Cor de fundo escura */
+  margin: 0;
+  padding: 20px;
+  color: white;
+  font-family: "Arial", sans-serif;
+}
+
+.app-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+body {
+  background-color: #121212;
+  margin: 0;
+  padding: 20px;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.live-match-panel {
+  background: #1a1a1a !important;
+  margin: 20px auto !important;
+  max-width: 800px !important;
+}

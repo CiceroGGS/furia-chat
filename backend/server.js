@@ -1,16 +1,19 @@
+// server.js
 require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
+
 const chatRoutes = require("./routes/chatRoutes");
+const liveMatchRoutes = require("./routes/liveMatchRoutes");
 const ChatMessage = require("./models/ChatMessage");
 
 const app = express();
 const server = http.createServer(app);
 
-// Configuração do CORS
+// CORS
 app.use(
   cors({
     origin: ["http://localhost:3000", "http://localhost:5173"],
@@ -19,22 +22,24 @@ app.use(
   })
 );
 
-// Middleware de logging
+// Logging simples
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.url}`);
   next();
 });
 
 app.use(express.json());
+// Rotas REST
 app.use("/api/chat", chatRoutes);
+app.use("/api/match-live", liveMatchRoutes);
 
-// Conexão com MongoDB
+// Conexão MongoDB
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => console.log("✅ MongoDB conectado"))
   .catch((err) => console.error("❌ Erro MongoDB:", err));
 
-// Configuração do Socket.IO
+// Socket.IO
 const io = new Server(server, {
   cors: {
     origin: ["http://localhost:3000", "http://localhost:5173"],
@@ -46,50 +51,29 @@ const io = new Server(server, {
   },
 });
 
-// Handlers de Socket.IO
 io.on("connection", (socket) => {
-  console.log(`🔌 Novo cliente conectado: ${socket.id}`);
+  console.log(`🔌 Novo cliente: ${socket.id}`);
 
-  // Envia as últimas 50 mensagens ao conectar
-  const sendLastMessages = async () => {
+  // envia últimas 50 mensagens
+  (async () => {
     try {
-      const messages = await ChatMessage.find()
+      const msgs = await ChatMessage.find()
         .sort({ createdAt: -1 })
         .limit(50)
         .lean();
-      socket.emit("initial_messages", messages.reverse());
-    } catch (error) {
-      console.error("Erro ao carregar mensagens iniciais:", error);
+      socket.emit("initial_messages", msgs.reverse());
+    } catch (e) {
+      console.error("Erro ao carregar iniciais:", e);
     }
-  };
+  })();
 
-  sendLastMessages();
-
+  // mensagem normal
   socket.on("send_message", async (data) => {
     try {
-      if (!data.message || data.message.trim() === "") {
-        throw new Error("Mensagem vazia");
-      }
-
-      // Verifica se é um comando
-      if (data.message.startsWith("!")) {
-        const command = data.message.split(" ")[0].substring(1).toLowerCase();
-
-        if (command === "stats") {
-          const messageCount = await ChatMessage.countDocuments();
-          const activeUsers = await ChatMessage.distinct("username");
-
-          socket.emit("stats_response", {
-            totalMessages: messageCount,
-            activeUsers: activeUsers.length,
-          });
-          return;
-        }
-      }
-
-      const username =
-        data.username || `User${Math.random().toString(36).substr(2, 5)}`;
-      const newMessage = {
+      if (!data.message.trim()) throw new Error("Mensagem vazia");
+      let username =
+        data.username || `User${Math.random().toString(36).slice(2, 7)}`;
+      const doc = new ChatMessage({
         message: data.message.trim(),
         username,
         time: new Date().toLocaleTimeString([], {
@@ -97,46 +81,36 @@ io.on("connection", (socket) => {
           minute: "2-digit",
         }),
         isCommand: data.message.startsWith("!"),
-      };
-
-      const messageDoc = new ChatMessage(newMessage);
-      const savedMessage = await messageDoc.save();
-
-      io.emit("new_message", savedMessage.toObject());
-    } catch (error) {
-      console.error("Erro ao processar mensagem:", error);
-      socket.emit("system_message", {
-        type: "ERROR",
-        message: error.message || "Erro ao processar sua mensagem",
       });
+      const saved = await doc.save();
+      io.emit("new_message", saved.toObject());
+    } catch (err) {
+      console.error("Erro ao processar mensagem:", err);
+      socket.emit("system_message", { type: "ERROR", message: err.message });
     }
   });
 
-  socket.on("send_cheer", (data) => {
-    const username = data.username || "Anônimo";
-    const cheerCount = Math.floor(Math.random() * 5) + 1;
-    io.emit("cheer_update", {
-      count: cheerCount,
-      user: username,
-      type: "CHEER_UPDATE",
-    });
+  // cheer
+  socket.on("send_cheer", ({ username }) => {
+    const count = Math.floor(Math.random() * 5) + 1;
+    io.emit("cheer_update", { count, user: username || "Anônimo" });
   });
 
   socket.on("disconnect", () => {
-    console.log(`⚠️ Cliente desconectado: ${socket.id}`);
+    console.log(`⚠️ Desconectado: ${socket.id}`);
   });
 });
 
-// Rota de health check
+// health-check
 app.get("/health", (req, res) => {
-  res.status(200).json({
+  res.json({
     status: "healthy",
     mongo: mongoose.connection.readyState === 1 ? "connected" : "disconnected",
     websocket: io.engine.clientsCount,
   });
 });
 
-// Middleware de erro global
+// erro global
 app.use((err, req, res, next) => {
   console.error("❌ Erro:", err.stack);
   res.status(500).json({ error: "Algo deu errado!" });
@@ -144,12 +118,5 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
-  console.log(`🚀 Servidor rodando na porta ${PORT}`);
-  console.log(`🔗 Endpoints:`);
-  console.log(`   - http://localhost:${PORT}/api/chat`);
-  console.log(`   - http://localhost:${PORT}/health`);
-});
-
-process.on("unhandledRejection", (err) => {
-  console.error("❌ Unhandled Rejection:", err);
+  console.log(`🚀 Server rodando em http://localhost:${PORT}`);
 });
