@@ -41,7 +41,7 @@ const io = new Server(server, {
     methods: ["GET", "POST"],
   },
   connectionStateRecovery: {
-    maxDisconnectionDuration: 2 * 60 * 1000, // 2 minutos
+    maxDisconnectionDuration: 2 * 60 * 1000,
     skipMiddlewares: true,
   },
 });
@@ -71,6 +71,22 @@ io.on("connection", (socket) => {
         throw new Error("Mensagem vazia");
       }
 
+      // Verifica se é um comando
+      if (data.message.startsWith("!")) {
+        const command = data.message.split(" ")[0].substring(1).toLowerCase();
+
+        if (command === "stats") {
+          const messageCount = await ChatMessage.countDocuments();
+          const activeUsers = await ChatMessage.distinct("username");
+
+          socket.emit("stats_response", {
+            totalMessages: messageCount,
+            activeUsers: activeUsers.length,
+          });
+          return;
+        }
+      }
+
       const username =
         data.username || `User${Math.random().toString(36).substr(2, 5)}`;
       const newMessage = {
@@ -98,20 +114,11 @@ io.on("connection", (socket) => {
 
   socket.on("send_cheer", (data) => {
     const username = data.username || "Anônimo";
+    const cheerCount = Math.floor(Math.random() * 5) + 1;
     io.emit("cheer_update", {
-      count: Math.floor(Math.random() * 10) + 1,
+      count: cheerCount,
       user: username,
       type: "CHEER_UPDATE",
-    });
-  });
-
-  socket.on("request_help", () => {
-    socket.emit("system_message", {
-      type: "HELP_RESPONSE",
-      commands: [
-        { command: "!cheer", description: "Envia um grito de guerra" },
-        { command: "!help", description: "Mostra esta mensagem de ajuda" },
-      ],
     });
   });
 
