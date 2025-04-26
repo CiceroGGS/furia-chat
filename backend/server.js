@@ -21,6 +21,14 @@ const io = new Server(server, {
   },
 });
 
+// Sistema de Torcida
+let cheerCount = 0;
+let cheerTimeout = null;
+const resetCheerCount = () => {
+  cheerCount = 0;
+  io.emit("cheer_reset");
+};
+
 mongoose
   .connect(process.env.MONGO_URI, {
     useNewUrlParser: true,
@@ -31,80 +39,69 @@ mongoose
   .then(() => console.log("✅ MongoDB conectado"))
   .catch((err) => console.error("❌ Erro MongoDB:", err));
 
-// Middlewares
 app.use(cors());
 app.use(express.json());
 app.use("/api/chat", chatRoutes);
 
-// Health Check
 app.get("/", (req, res) => {
   res.status(200).json({
     status: "online",
     service: "FURIA Chat Backend",
-    version: "1.0.0",
+    version: "1.1.0", // Atualizada a versão
   });
 });
 
 io.on("connection", (socket) => {
   console.log(`🔌 Novo usuário conectado: ${socket.id}`);
 
-  socket.on("load_messages", async () => {
+  // Sistema de Torcida
+  socket.on("send_cheer", (data) => {
     try {
-      const messages = await ChatMessage.find()
-        .sort({ createdAt: -1 })
-        .limit(50);
-      socket.emit("messages_loaded", messages.reverse());
-    } catch (error) {
-      console.error("Erro ao carregar mensagens:", error);
-      socket.emit("error", "Falha ao carregar mensagens");
-    }
-  });
+      cheerCount++;
 
-  socket.on("send_message", async (data) => {
-    try {
-      const { username, message } = data;
-
-      if (!username || !message) {
-        throw new Error("Dados inválidos");
-      }
-
-      const newMessage = new ChatMessage({
-        username,
-        message,
-        socketId: socket.id,
+      // Notifica todos sobre o grito
+      io.emit("cheer_update", {
+        count: cheerCount,
+        user: data.username,
+        timestamp: new Date(),
       });
 
-      await newMessage.save();
-      io.emit("new_message", newMessage);
+      // Dispara efeito especial se 3+ gritos em 5 segundos
+      if (cheerTimeout) clearTimeout(cheerTimeout);
+      cheerTimeout = setTimeout(resetCheerCount, 5000);
+
+      if (cheerCount >= 3) {
+        io.emit("special_event", {
+          type: "mass_cheer",
+          message: `🎉 ${cheerCount} FURIACOS GRITARAM JUNTOS!`,
+          count: cheerCount,
+        });
+        resetCheerCount();
+      }
     } catch (error) {
-      console.error("Erro ao salvar mensagem:", error);
-      socket.emit("error", "Falha ao enviar mensagem");
+      console.error("Erro no sistema de torcida:", error);
     }
   });
 
-  socket.on("join_match", (matchId) => {
-    socket.join(`match_${matchId}`);
-    console.log(`🎮 Usuário ${socket.id} entrou na sala do jogo ${matchId}`);
+  // Mantenha todos os outros eventos que você já tinha...
+  socket.on("load_messages", async () => {
+    /* ... */
   });
-
-  // Simulador de eventos (substitua por API real depois)
-  setInterval(() => {
-    const events = [
-      "Round 5 iniciado | FURIA 3 x 1 Opponent",
-      "KSCERATO fez 2 kills!",
-      "Placar atual: FURIA 7 x 5 Opponent",
-    ];
-    const randomEvent = events[Math.floor(Math.random() * events.length)];
-    io.to("match_123").emit("live_event", {
-      event: randomEvent,
-      timestamp: new Date(),
-    });
-  }, 15000);
-
+  socket.on("send_message", async (data) => {
+    /* ... */
+  });
+  socket.on("join_match", (matchId) => {
+    /* ... */
+  });
   socket.on("disconnect", () => {
-    console.log(`⚠️ Usuário desconectado: ${socket.id}`);
+    /* ... */
   });
 });
+
+// Atualização de partidas (mantenha seu código existente)
+setInterval(() => {
+  /* ... */
+}, 30000);
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
