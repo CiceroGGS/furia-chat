@@ -12,6 +12,8 @@ import {
   UserBadge,
   Timestamp,
 } from "./components/ChatStyles";
+import LiveEvent from "./components/LiveEvent";
+import LiveMatchPanel from "./components/LiveMatchPanel";
 import furiaLogo from "./assets/furia-esports-logo.png";
 
 const socket = io("http://localhost:5000");
@@ -19,6 +21,7 @@ const socket = io("http://localhost:5000");
 const App = () => {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
+  const [liveEvents, setLiveEvents] = useState([]); // <- Novo estado para eventos ao vivo
   const [username] = useState(`FURIA Fan #${Math.floor(Math.random() * 1000)}`);
   const messagesEndRef = useRef(null);
 
@@ -28,7 +31,7 @@ const App = () => {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, liveEvents]);
 
   const handleSendMessage = () => {
     if (message.trim() !== "") {
@@ -53,6 +56,12 @@ const App = () => {
 
     socket.on("receive_message", (newMessage) => {
       setMessages((prevMessages) => [...prevMessages, newMessage]);
+
+      // Se a mensagem começar com "!event", cria um LiveEvent
+      if (newMessage.message.startsWith("!event ")) {
+        const eventText = newMessage.message.replace("!event ", "");
+        setLiveEvents((prevEvents) => [...prevEvents, eventText]);
+      }
     });
 
     return () => socket.off("receive_message");
@@ -65,6 +74,14 @@ const App = () => {
           <FuriaLogo src={furiaLogo} alt="FURIA Logo" />
           <h1>FURIA CHAT</h1>
         </ChatHeader>
+
+        {/* Painel de partida ao vivo */}
+        <LiveMatchPanel matchId="furia_vs_opponent" />
+
+        {/* Lista de eventos ao vivo */}
+        {liveEvents.map((event, index) => (
+          <LiveEvent key={index} event={event} />
+        ))}
 
         <MessageList>
           {messages.map((msg, index) => (
