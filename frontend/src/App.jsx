@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import io from "socket.io-client";
 import "./App.css";
+import LiveMatchPanel from "./components/LiveMatchPanel";
 
 const socket = io("http://localhost:5000");
 
@@ -146,6 +147,8 @@ const App = () => {
         <h1>FURIA Chat</h1>
         <div className="header-subtitle">Conecte-se à Nação FURIA</div>
       </div>
+
+      <LiveMatchPanel matchId="12345" />
 
       <div className="messages-container">
         {messages.map((msg, index) => (
