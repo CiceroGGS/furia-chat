@@ -1,15 +1,31 @@
 const mongoose = require("mongoose");
 
-const ChatMessageSchema = new mongoose.Schema(
+const chatMessageSchema = new mongoose.Schema(
   {
-    username: { type: String, required: true },
-    message: { type: String, required: true },
+    message: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    username: {
+      type: String,
+      required: true,
+      default: "Anônimo",
+    },
+    time: String,
+    isCommand: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,
+    versionKey: false,
   }
 );
 
-const ChatMessage = mongoose.model("ChatMessage", ChatMessageSchema);
+// Index para melhor performance
+chatMessageSchema.index({ username: 1 });
+chatMessageSchema.index({ createdAt: 1 });
 
-module.exports = ChatMessage;
+module.exports = mongoose.model("ChatMessage", chatMessageSchema);

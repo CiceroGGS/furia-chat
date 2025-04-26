@@ -1,113 +1,97 @@
-import { useState, useEffect, useRef } from "react";
-import { io } from "socket.io-client";
-import {
-  ChatContainer,
-  ChatHeader,
-  MessageList,
-  Message,
-  MessageInputContainer,
-  MessageInput,
-  SendButton,
-  FuriaLogo,
-  UserBadge,
-  Timestamp,
-} from "./components/ChatStyles";
-import LiveEvent from "./components/LiveEvent";
-import LiveMatchPanel from "./components/LiveMatchPanel";
-import furiaLogo from "./assets/furia-esports-logo.png";
+import React, { useState, useEffect, useRef } from "react";
+import io from "socket.io-client";
+import "./App.css";
 
 const socket = io("http://localhost:5000");
 
 const App = () => {
-  const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
-  const [liveEvents, setLiveEvents] = useState([]); // <- Novo estado para eventos ao vivo
-  const [username] = useState(`FURIA Fan #${Math.floor(Math.random() * 1000)}`);
+  const [message, setMessage] = useState("");
+  const [username, setUsername] = useState("");
   const messagesEndRef = useRef(null);
 
-  const scrollToBottom = () => {
+  // Auto-scroll para baixo quando novas mensagens chegarem
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  }, [messages]);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, liveEvents]);
+    const loadMessages = async () => {
+      try {
+        const response = await fetch("http://localhost:5000/api/chat");
+        const data = await response.json();
+        setMessages(data);
+      } catch (error) {
+        console.error("Erro ao carregar mensagens:", error);
+      }
+    };
+
+    loadMessages();
+
+    socket.on("new_message", (newMessage) => {
+      setMessages((prev) => [...prev, newMessage]);
+    });
+
+    return () => {
+      socket.off("new_message");
+    };
+  }, []);
 
   const handleSendMessage = () => {
     if (message.trim() !== "") {
-      const messageData = {
+      socket.emit("send_message", {
         message,
-        username,
-        time: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-      };
-      socket.emit("send_message", messageData);
+        username: username || `FURIA Fan #${Math.floor(Math.random() * 1000)}`,
+      });
       setMessage("");
     }
   };
 
-  useEffect(() => {
-    fetch("http://localhost:5000/api/chat")
-      .then((response) => response.json())
-      .then((data) => setMessages(data))
-      .catch((error) => console.error("Erro ao carregar mensagens:", error));
-
-    socket.on("receive_message", (newMessage) => {
-      setMessages((prevMessages) => [...prevMessages, newMessage]);
-
-      // Se a mensagem começar com "!event", cria um LiveEvent
-      if (newMessage.message.startsWith("!event ")) {
-        const eventText = newMessage.message.replace("!event ", "");
-        setLiveEvents((prevEvents) => [...prevEvents, eventText]);
-      }
-    });
-
-    return () => socket.off("receive_message");
-  }, []);
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
 
   return (
-    <div className="app-background">
-      <ChatContainer>
-        <ChatHeader>
-          <FuriaLogo src={furiaLogo} alt="FURIA Logo" />
-          <h1>FURIA CHAT</h1>
-        </ChatHeader>
+    <div className="chat-app">
+      <div className="chat-header">
+        <h1>FURIA Chat</h1>
+      </div>
 
-        {/* Painel de partida ao vivo */}
-        <LiveMatchPanel matchId="furia_vs_opponent" />
-
-        {/* Lista de eventos ao vivo */}
-        {liveEvents.map((event, index) => (
-          <LiveEvent key={index} event={event} />
+      <div className="messages-container">
+        {messages.map((msg, index) => (
+          <div key={index} className="message">
+            <div className="message-user">{msg.username}</div>
+            <div className="message-content">
+              <div className="message-text">{msg.message}</div>
+              <div className="message-time">{msg.time}</div>
+            </div>
+          </div>
         ))}
+        <div ref={messagesEndRef} />
+      </div>
 
-        <MessageList>
-          {messages.map((msg, index) => (
-            <Message key={index} isUser={msg.username === username}>
-              <UserBadge isUser={msg.username === username}>
-                {msg.username} <Timestamp>{msg.time}</Timestamp>
-              </UserBadge>
-              <p>{msg.message}</p>
-            </Message>
-          ))}
-          <div ref={messagesEndRef} />
-        </MessageList>
-
-        <MessageInputContainer>
-          <MessageInput
+      <div className="message-input-container">
+        <div className="user-info">
+          <input
             type="text"
+            placeholder="Seu nome (opcional)"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+          />
+        </div>
+        <div className="message-input">
+          <textarea
+            placeholder="Digite uma mensagem..."
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-            placeholder="Envie um grito de guerra! 🔥"
+            onKeyPress={handleKeyPress}
           />
-          <SendButton onClick={handleSendMessage}>
-            <span>Enviar</span> 🚀
-          </SendButton>
-        </MessageInputContainer>
-      </ChatContainer>
+          <button onClick={handleSendMessage}>Enviar</button>
+        </div>
+      </div>
     </div>
   );
 };

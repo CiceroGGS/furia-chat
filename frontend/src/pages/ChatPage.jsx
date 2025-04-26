@@ -1,14 +1,9 @@
-// src/pages/ChatPage.jsx
 import { useState, useEffect, useRef } from "react";
 import { io } from "socket.io-client";
 import {
   ChatContainer,
   Header,
   LiveMatchPanel,
-  MatchTitle,
-  MatchScore,
-  MatchStats,
-  CheerBanner,
   MessageList,
   Message,
   MessageHeader,
@@ -23,45 +18,25 @@ import {
 function ChatPage() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
-  const [liveEvents, setLiveEvents] = useState([]);
-  const [matchData, setMatchData] = useState(null);
-  const [isConnected, setIsConnected] = useState(false);
   const [cheerCount, setCheerCount] = useState(0);
   const [lastCheerUser, setLastCheerUser] = useState("");
   const socket = useRef(null);
-  const messagesEndRef = useRef(null);
+  const [username] = useState(`FURIA_Fan_${Math.floor(Math.random() * 1000)}`);
 
   useEffect(() => {
-    socket.current = io("http://localhost:5000");
-
-    socket.current.on("connect", () => {
-      setIsConnected(true);
-      socket.current.emit("join_match", "current_furia_match");
+    socket.current = io("http://localhost:5000", {
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
     });
 
-    socket.current.on("disconnect", () => {
-      setIsConnected(false);
+    // Listeners
+    socket.current.on("connect", () => {
+      console.log("Conectado ao servidor Socket.io");
     });
 
     socket.current.on("new_message", (message) => {
       setMessages((prev) => [...prev, message]);
-    });
-
-    socket.current.on("live_event", (event) => {
-      setLiveEvents((prev) => [...prev.slice(-5), event]);
-    });
-
-    socket.current.on("match_data", (data) => {
-      setMatchData(data);
-    });
-
-    socket.current.on("match_update", (update) => {
-      setMatchData((prev) => ({
-        ...prev,
-        score: update.score,
-        map: update.map,
-        round: update.round,
-      }));
     });
 
     socket.current.on("cheer_update", (data) => {
@@ -69,9 +44,9 @@ function ChatPage() {
       setLastCheerUser(data.user);
     });
 
-    socket.current.on("special_event", (data) => {
-      setLiveEvents((prev) => [...prev, data.message]);
-      setCheerCount(0);
+    socket.current.on("chat_error", (error) => {
+      console.error("Erro no chat:", error.message);
+      alert(`Erro: ${error.message}`);
     });
 
     return () => {
@@ -79,31 +54,21 @@ function ChatPage() {
     };
   }, []);
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, liveEvents, cheerCount]);
-
   const handleSendMessage = (e) => {
     e.preventDefault();
     if (!newMessage.trim()) return;
 
-    const messageData = {
-      username: "Você",
+    socket.current.emit("send_message", {
       message: newMessage,
-      time: new Date().toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-    };
+      username: username,
+    });
 
-    socket.current.emit("send_message", messageData);
     setNewMessage("");
   };
 
   const handleCheer = () => {
     socket.current.emit("send_cheer", {
-      username: "Você",
-      type: "furia_cheer",
+      username: username,
     });
   };
 
@@ -111,77 +76,46 @@ function ChatPage() {
     <ChatContainer>
       <Header>FURIA CHAT</Header>
 
-      <LiveMatchPanel>
-        {matchData ? (
-          <>
-            <MatchTitle>⚡ {matchData.event || "FURIA Match"}</MatchTitle>
-            <MatchScore>
-              {matchData.team1 || "FURIA"} {matchData?.score || "0 x 0"}{" "}
-              {matchData.team2 || "Opponent"}
-            </MatchScore>
-            <MatchStats>
-              <span>Round: {matchData.round || "1"}</span>
-              <span>Map: {matchData.map || "Mirage"}</span>
-            </MatchStats>
-          </>
-        ) : (
-          <p>Carregando dados da partida...</p>
-        )}
-      </LiveMatchPanel>
+      <LiveMatchPanel matchId="furia_vs_opponent" />
 
       {cheerCount > 0 && (
-        <CheerBanner>
+        <div
+          style={{
+            background: "#ff5500",
+            padding: "10px",
+            margin: "10px 0",
+            borderRadius: "5px",
+            textAlign: "center",
+          }}
+        >
           🔥 {cheerCount}{" "}
           {cheerCount === 1 ? "pessoa gritou" : "pessoas gritaram"}!
           {lastCheerUser && ` (${lastCheerUser} foi o último)`}
-        </CheerBanner>
+        </div>
       )}
 
       <MessageList>
-        {liveEvents.map((event, index) => (
-          <Message key={`event-${index}`} $isBot>
-            <MessageHeader>
-              <Username>FURIA Bot</Username>
-              <MessageTime>
-                {new Date().toLocaleTimeString([], { timeStyle: "short" })}
-              </MessageTime>
-            </MessageHeader>
-            {event}
-          </Message>
-        ))}
-
         {messages.map((msg, index) => (
-          <Message key={`msg-${index}`} $isUser={msg.username === "Você"}>
+          <Message key={index} $isUser={msg.username === username}>
             <MessageHeader>
               <Username>{msg.username}</Username>
-              <MessageTime $isUser={msg.username === "Você"}>
-                {msg.time}
-              </MessageTime>
+              <MessageTime>{msg.time}</MessageTime>
             </MessageHeader>
             {msg.message}
           </Message>
         ))}
-        <div ref={messagesEndRef} />
       </MessageList>
 
       <InputContainer onSubmit={handleSendMessage}>
         <MessageInput
-          type="text"
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
-          placeholder="Envie um grito de guerra! 🔥"
-          disabled={!isConnected}
+          placeholder="Envie uma mensagem..."
         />
-        <CheerButton
-          type="button"
-          onClick={handleCheer}
-          disabled={!isConnected}
-        >
+        <CheerButton type="button" onClick={handleCheer}>
           🔥 VAMO!
         </CheerButton>
-        <SendButton type="submit" disabled={!isConnected}>
-          {isConnected ? "ENVIAR" : "..."}
-        </SendButton>
+        <SendButton type="submit">ENVIAR</SendButton>
       </InputContainer>
     </ChatContainer>
   );

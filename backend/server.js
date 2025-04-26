@@ -10,101 +10,139 @@ const ChatMessage = require("./models/ChatMessage");
 const app = express();
 const server = http.createServer(app);
 
+// Configuração do CORS
+app.use(
+  cors({
+    origin: ["http://localhost:3000", "http://localhost:5173"],
+    methods: ["GET", "POST"],
+    credentials: true,
+  })
+);
+
+// Middleware de logging
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url}`);
+  next();
+});
+
+app.use(express.json());
+app.use("/api/chat", chatRoutes);
+
+// Conexão com MongoDB
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => console.log("✅ MongoDB conectado"))
+  .catch((err) => console.error("❌ Erro MongoDB:", err));
+
+// Configuração do Socket.IO
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: ["http://localhost:3000", "http://localhost:5173"],
     methods: ["GET", "POST"],
   },
   connectionStateRecovery: {
-    maxDisconnectionDuration: 2 * 60 * 1000,
+    maxDisconnectionDuration: 2 * 60 * 1000, // 2 minutos
     skipMiddlewares: true,
   },
 });
 
-// Sistema de Torcida
-let cheerCount = 0;
-let cheerTimeout = null;
-const resetCheerCount = () => {
-  cheerCount = 0;
-  io.emit("cheer_reset");
-};
-
-mongoose
-  .connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-    retryWrites: true,
-    w: "majority",
-  })
-  .then(() => console.log("✅ MongoDB conectado"))
-  .catch((err) => console.error("❌ Erro MongoDB:", err));
-
-app.use(cors());
-app.use(express.json());
-app.use("/api/chat", chatRoutes);
-
-app.get("/", (req, res) => {
-  res.status(200).json({
-    status: "online",
-    service: "FURIA Chat Backend",
-    version: "1.1.0", // Atualizada a versão
-  });
-});
-
+// Handlers de Socket.IO
 io.on("connection", (socket) => {
-  console.log(`🔌 Novo usuário conectado: ${socket.id}`);
+  console.log(`🔌 Novo cliente conectado: ${socket.id}`);
 
-  // Sistema de Torcida
-  socket.on("send_cheer", (data) => {
+  // Envia as últimas 50 mensagens ao conectar
+  const sendLastMessages = async () => {
     try {
-      cheerCount++;
-
-      // Notifica todos sobre o grito
-      io.emit("cheer_update", {
-        count: cheerCount,
-        user: data.username,
-        timestamp: new Date(),
-      });
-
-      // Dispara efeito especial se 3+ gritos em 5 segundos
-      if (cheerTimeout) clearTimeout(cheerTimeout);
-      cheerTimeout = setTimeout(resetCheerCount, 5000);
-
-      if (cheerCount >= 3) {
-        io.emit("special_event", {
-          type: "mass_cheer",
-          message: `🎉 ${cheerCount} FURIACOS GRITARAM JUNTOS!`,
-          count: cheerCount,
-        });
-        resetCheerCount();
-      }
+      const messages = await ChatMessage.find()
+        .sort({ createdAt: -1 })
+        .limit(50)
+        .lean();
+      socket.emit("initial_messages", messages.reverse());
     } catch (error) {
-      console.error("Erro no sistema de torcida:", error);
+      console.error("Erro ao carregar mensagens iniciais:", error);
+    }
+  };
+
+  sendLastMessages();
+
+  socket.on("send_message", async (data) => {
+    try {
+      if (!data.message || data.message.trim() === "") {
+        throw new Error("Mensagem vazia");
+      }
+
+      const username =
+        data.username || `User${Math.random().toString(36).substr(2, 5)}`;
+      const newMessage = {
+        message: data.message.trim(),
+        username,
+        time: new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        isCommand: data.message.startsWith("!"),
+      };
+
+      const messageDoc = new ChatMessage(newMessage);
+      const savedMessage = await messageDoc.save();
+
+      io.emit("new_message", savedMessage.toObject());
+    } catch (error) {
+      console.error("Erro ao processar mensagem:", error);
+      socket.emit("system_message", {
+        type: "ERROR",
+        message: error.message || "Erro ao processar sua mensagem",
+      });
     }
   });
 
-  // Mantenha todos os outros eventos que você já tinha...
-  socket.on("load_messages", async () => {
-    /* ... */
+  socket.on("send_cheer", (data) => {
+    const username = data.username || "Anônimo";
+    io.emit("cheer_update", {
+      count: Math.floor(Math.random() * 10) + 1,
+      user: username,
+      type: "CHEER_UPDATE",
+    });
   });
-  socket.on("send_message", async (data) => {
-    /* ... */
+
+  socket.on("request_help", () => {
+    socket.emit("system_message", {
+      type: "HELP_RESPONSE",
+      commands: [
+        { command: "!cheer", description: "Envia um grito de guerra" },
+        { command: "!help", description: "Mostra esta mensagem de ajuda" },
+      ],
+    });
   });
-  socket.on("join_match", (matchId) => {
-    /* ... */
-  });
+
   socket.on("disconnect", () => {
-    /* ... */
+    console.log(`⚠️ Cliente desconectado: ${socket.id}`);
   });
 });
 
-// Atualização de partidas (mantenha seu código existente)
-setInterval(() => {
-  /* ... */
-}, 30000);
+// Rota de health check
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    status: "healthy",
+    mongo: mongoose.connection.readyState === 1 ? "connected" : "disconnected",
+    websocket: io.engine.clientsCount,
+  });
+});
+
+// Middleware de erro global
+app.use((err, req, res, next) => {
+  console.error("❌ Erro:", err.stack);
+  res.status(500).json({ error: "Algo deu errado!" });
+});
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);
-  console.log(`🔗 Acesse: http://localhost:${PORT}`);
+  console.log(`🔗 Endpoints:`);
+  console.log(`   - http://localhost:${PORT}/api/chat`);
+  console.log(`   - http://localhost:${PORT}/health`);
+});
+
+process.on("unhandledRejection", (err) => {
+  console.error("❌ Unhandled Rejection:", err);
 });
