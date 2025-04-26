@@ -1,27 +1,32 @@
 const ChatMessage = require("../models/ChatMessage");
 
-// Buscar todas as mensagens
-async function getMessages(req, res) {
+const getMessages = async (req, res) => {
   try {
     const messages = await ChatMessage.find().sort({ createdAt: 1 });
-    res.json(messages);
+    res.status(200).json(messages);
   } catch (error) {
-    res.status(500).json({ error: "Erro ao buscar mensagens" });
+    console.error("Erro ao buscar mensagens:", error);
+    res.status(500).json({ message: "Erro ao buscar mensagens", error });
   }
-}
+};
 
-// Salvar nova mensagem
-async function postMessage(req, res) {
-  const { username, message } = req.body;
-
+const postMessage = async (req, res) => {
   try {
-    const newMessage = new ChatMessage({ username, message });
+    const { username, message } = req.body;
+
+    const newMessage = new ChatMessage({
+      username,
+      message,
+    });
+
     await newMessage.save();
+
     res.status(201).json(newMessage);
   } catch (error) {
-    res.status(500).json({ error: "Erro ao salvar mensagem" });
+    console.error("Erro ao salvar mensagem:", error);
+    res.status(500).json({ message: "Erro ao salvar mensagem", error });
   }
-}
+};
 
 module.exports = {
   getMessages,
