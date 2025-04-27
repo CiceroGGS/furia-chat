@@ -261,3 +261,28 @@ body {
   margin: 20px auto !important;
   max-width: 800px !important;
 }
+
+.reply-indicator {
+  background: rgba(255, 85, 0, 0.1);
+  padding: 8px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #ff5500;
+  font-size: 0.9rem;
+}
+
+.reply-indicator button {
+  background: none;
+  border: none;
+  color: #ff5500;
+  cursor: pointer;
+  padding: 0 4px;
+  font-size: 1.2rem;
+}
+
+.reply-indicator button:hover {
+  color: #ff884d;
+}

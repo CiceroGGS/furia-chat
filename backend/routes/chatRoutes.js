@@ -41,4 +41,63 @@ router.post("/", async (req, res) => {
   }
 });
 
+// Editar mensagem
+router.patch("/:id", async (req, res) => {
+  try {
+    const message = await ChatMessage.findByIdAndUpdate(
+      req.params.id,
+      {
+        message: req.body.content,
+        edited: true,
+      },
+      { new: true }
+    );
+
+    if (!message)
+      return res.status(404).json({ error: "Mensagem não encontrada" });
+    res.json(message);
+  } catch (error) {
+    res.status(500).json({ error: "Erro ao editar mensagem" });
+  }
+});
+
+// Excluir mensagem (soft delete)
+router.delete("/:id", async (req, res) => {
+  try {
+    const message = await ChatMessage.findByIdAndUpdate(
+      req.params.id,
+      { deleted: true },
+      { new: true }
+    );
+
+    if (!message)
+      return res.status(404).json({ error: "Mensagem não encontrada" });
+    res.json(message);
+  } catch (error) {
+    res.status(500).json({ error: "Erro ao excluir mensagem" });
+  }
+});
+
+// Adicionar reação
+router.post("/:id/react", async (req, res) => {
+  try {
+    const message = await ChatMessage.findByIdAndUpdate(
+      req.params.id,
+      {
+        $push: {
+          reactions: {
+            userId: req.body.userId,
+            emoji: req.body.emoji,
+          },
+        },
+      },
+      { new: true }
+    );
+
+    res.json(message.reactions);
+  } catch (error) {
+    res.status(500).json({ error: "Erro ao adicionar reação" });
+  }
+});
+
 module.exports = router;

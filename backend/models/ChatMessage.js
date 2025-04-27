@@ -1,5 +1,3 @@
-const mongoose = require("mongoose");
-
 const chatMessageSchema = new mongoose.Schema(
   {
     message: {
@@ -17,15 +15,28 @@ const chatMessageSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    // Novos campos
+    edited: {
+      type: Boolean,
+      default: false,
+    },
+    deleted: {
+      type: Boolean,
+      default: false,
+    },
+    parentMessageId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ChatMessage",
+    },
+    reactions: [
+      {
+        userId: String,
+        emoji: String,
+      },
+    ],
   },
   {
     timestamps: true,
     versionKey: false,
   }
 );
-
-// Index para melhor performance
-chatMessageSchema.index({ username: 1 });
-chatMessageSchema.index({ createdAt: 1 });
-
-module.exports = mongoose.model("ChatMessage", chatMessageSchema);

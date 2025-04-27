@@ -1,8 +1,6 @@
-// src/components/LiveMatchPanel.jsx
 import React, { useEffect, useState } from "react";
 import styled from "styled-components";
 
-// Mock de fallback
 const getMockData = () => {
   const opponents = ["Team Liquid", "FaZe Clan", "Natus Vincere"];
   const opponent = opponents[Math.floor(Math.random() * opponents.length)];
@@ -48,7 +46,6 @@ export default function LiveMatchPanel() {
         const json = await res.json();
         setData(json);
       } catch {
-        // fallback para mock
         setData(getMockData());
       } finally {
         setLoad(false);
@@ -89,7 +86,6 @@ export default function LiveMatchPanel() {
   );
 }
 
-// styled-components
 const Panel = styled.div`
   position: relative;
   background: rgba(10, 10, 10, ${(p) => (p.simulated ? 0.7 : 0.9)});
