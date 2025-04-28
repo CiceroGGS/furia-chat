@@ -1,19 +1,12 @@
-// src/pages/ChatPage.jsx
 import { useState, useEffect, useRef } from "react";
 import { io } from "socket.io-client";
+import Message from "../components/Message";
 import {
   ChatContainer,
   Header,
   LiveMatchPanel,
-  MatchTitle,
-  MatchScore,
-  MatchStats,
   CheerBanner,
   MessageList,
-  Message,
-  MessageHeader,
-  Username,
-  MessageTime,
   InputContainer,
   MessageInput,
   SendButton,
@@ -22,89 +15,53 @@ import {
 
 function ChatPage() {
   const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState("");
-  const [liveEvents, setLiveEvents] = useState([]);
-  const [matchData, setMatchData] = useState(null);
-  const [isConnected, setIsConnected] = useState(false);
+  const [newMsg, setNewMsg] = useState("");
   const [cheerCount, setCheerCount] = useState(0);
   const [lastCheerUser, setLastCheerUser] = useState("");
+  const [replyingTo, setReplyingTo] = useState(null);
   const socket = useRef(null);
-  const messagesEndRef = useRef(null);
+  const username = `FURIA_Fan_${Math.floor(Math.random() * 1000)}`;
+  const endRef = useRef(null);
 
   useEffect(() => {
     socket.current = io("http://localhost:5000");
-
-    socket.current.on("connect", () => {
-      setIsConnected(true);
-      socket.current.emit("join_match", "current_furia_match");
+    socket.current.on("initial_messages", (msgs) => setMessages(msgs || []));
+    socket.current.on("new_message", (m) =>
+      setMessages((prev) => [...prev, m])
+    );
+    socket.current.on("cheer_update", (d) => {
+      setCheerCount(d.count);
+      setLastCheerUser(d.user);
     });
-
-    socket.current.on("disconnect", () => {
-      setIsConnected(false);
-    });
-
-    socket.current.on("new_message", (message) => {
-      setMessages((prev) => [...prev, message]);
-    });
-
-    socket.current.on("live_event", (event) => {
-      setLiveEvents((prev) => [...prev.slice(-5), event]);
-    });
-
-    socket.current.on("match_data", (data) => {
-      setMatchData(data);
-    });
-
-    socket.current.on("match_update", (update) => {
-      setMatchData((prev) => ({
-        ...prev,
-        score: update.score,
-        map: update.map,
-        round: update.round,
-      }));
-    });
-
-    socket.current.on("cheer_update", (data) => {
-      setCheerCount(data.count);
-      setLastCheerUser(data.user);
-    });
-
-    socket.current.on("special_event", (data) => {
-      setLiveEvents((prev) => [...prev, data.message]);
-      setCheerCount(0);
-    });
-
-    return () => {
-      socket.current.disconnect();
-    };
+    return () => socket.current.disconnect();
   }, []);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, liveEvents, cheerCount]);
+    endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, cheerCount]);
 
-  const handleSendMessage = (e) => {
+  const handleSend = (e) => {
     e.preventDefault();
-    if (!newMessage.trim()) return;
+    if (!newMsg.trim()) return;
 
-    const messageData = {
-      username: "Você",
-      message: newMessage,
-      time: new Date().toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-    };
+    socket.current.emit("send_message", {
+      message: newMsg,
+      username,
+      parentMessageId: replyingTo,
+    });
 
-    socket.current.emit("send_message", messageData);
-    setNewMessage("");
+    setNewMsg("");
+    setReplyingTo(null);
   };
 
   const handleCheer = () => {
-    socket.current.emit("send_cheer", {
-      username: "Você",
-      type: "furia_cheer",
-    });
+    socket.current.emit("send_cheer", { username });
+  };
+
+  const handleReply = (messageId) => {
+    const messageToReply = messages.find((m) => m._id === messageId);
+    setReplyingTo(messageId);
+    setNewMsg(`@${messageToReply.username} `);
   };
 
   return (
@@ -112,76 +69,92 @@ function ChatPage() {
       <Header>FURIA CHAT</Header>
 
       <LiveMatchPanel>
-        {matchData ? (
-          <>
-            <MatchTitle>⚡ {matchData.event || "FURIA Match"}</MatchTitle>
-            <MatchScore>
-              {matchData.team1 || "FURIA"} {matchData?.score || "0 x 0"}{" "}
-              {matchData.team2 || "Opponent"}
-            </MatchScore>
-            <MatchStats>
-              <span>Round: {matchData.round || "1"}</span>
-              <span>Map: {matchData.map || "Mirage"}</span>
-            </MatchStats>
-          </>
-        ) : (
-          <p>Carregando dados da partida...</p>
-        )}
+        {/* conteúdo ou componentes do painel ao vivo */}
       </LiveMatchPanel>
 
       {cheerCount > 0 && (
         <CheerBanner>
-          🔥 {cheerCount}{" "}
-          {cheerCount === 1 ? "pessoa gritou" : "pessoas gritaram"}!
-          {lastCheerUser && ` (${lastCheerUser} foi o último)`}
+          🔥 {cheerCount} gritos! ({lastCheerUser})
         </CheerBanner>
       )}
 
       <MessageList>
-        {liveEvents.map((event, index) => (
-          <Message key={`event-${index}`} $isBot>
-            <MessageHeader>
-              <Username>FURIA Bot</Username>
-              <MessageTime>
-                {new Date().toLocaleTimeString([], { timeStyle: "short" })}
-              </MessageTime>
-            </MessageHeader>
-            {event}
-          </Message>
-        ))}
-
-        {messages.map((msg, index) => (
-          <Message key={`msg-${index}`} $isUser={msg.username === "Você"}>
-            <MessageHeader>
-              <Username>{msg.username}</Username>
-              <MessageTime $isUser={msg.username === "Você"}>
-                {msg.time}
-              </MessageTime>
-            </MessageHeader>
-            {msg.message}
-          </Message>
-        ))}
-        <div ref={messagesEndRef} />
+        {messages
+          ?.filter((msg) => msg)
+          .map((m) => (
+            <Message
+              key={m._id}
+              message={{
+                ...m,
+                parentMessagePreview: m.parentMessageId
+                  ? (() => {
+                      const parentMsg = messages.find(
+                        (msg) => msg._id === m.parentMessageId
+                      );
+                      return parentMsg
+                        ? {
+                            username: parentMsg.username,
+                            message: parentMsg.message,
+                          }
+                        : null;
+                    })()
+                  : null,
+              }}
+              currentUser={username}
+              onEdit={(id, content) => {
+                socket.current.emit("edit_message", { id, content });
+              }}
+              onDelete={(id) => {
+                socket.current.emit("delete_message", { id });
+              }}
+              onReact={(id, emoji) => {
+                socket.current.emit("react_message", { id, emoji, username });
+              }}
+              onReply={handleReply}
+            />
+          ))}
+        <div ref={endRef} />
       </MessageList>
 
-      <InputContainer onSubmit={handleSendMessage}>
+      <InputContainer onSubmit={handleSend}>
+        {replyingTo && (
+          <div
+            style={{
+              background: "rgba(255,85,0,0.1)",
+              padding: "8px",
+              borderRadius: "4px",
+              marginBottom: "8px",
+              fontSize: "0.9rem",
+            }}
+          >
+            Respondendo a:{" "}
+            {messages
+              .find((m) => m._id === replyingTo)
+              ?.message.substring(0, 30)}
+            ...
+            <button
+              onClick={() => setReplyingTo(null)}
+              style={{
+                background: "none",
+                border: "none",
+                color: "#ff5500",
+                marginLeft: "8px",
+                cursor: "pointer",
+              }}
+            >
+              ×
+            </button>
+          </div>
+        )}
         <MessageInput
-          type="text"
-          value={newMessage}
-          onChange={(e) => setNewMessage(e.target.value)}
-          placeholder="Envie um grito de guerra! 🔥"
-          disabled={!isConnected}
+          value={newMsg}
+          onChange={(e) => setNewMsg(e.target.value)}
+          placeholder="Envie uma mensagem..."
         />
-        <CheerButton
-          type="button"
-          onClick={handleCheer}
-          disabled={!isConnected}
-        >
-          🔥 VAMO!
+        <CheerButton onClick={handleCheer} type="button">
+          🔥
         </CheerButton>
-        <SendButton type="submit" disabled={!isConnected}>
-          {isConnected ? "ENVIAR" : "..."}
-        </SendButton>
+        <SendButton type="submit">ENVIAR</SendButton>
       </InputContainer>
     </ChatContainer>
   );
