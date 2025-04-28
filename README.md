@@ -1,142 +1,130 @@
-Furia Chat
+# FURIA Chat - A Comunidade Conectada
 
-Furia Chat é uma aplicação de chat em tempo real que oferece dois modos distintos: Live Mode (para conversas em tempo real) e Offline Mode (para mensagens assíncronas). Este projeto foi desenvolvido para fornecer uma experiência flexível de comunicação adaptável a diferentes cenários de conectividade.
+Este é o repositório do frontend da aplicação FURIA Chat, um espaço dedicado para a torcida da FURIA Esports se conectar, interagir e vibrar junta durante as partidas e eventos.
 
-Tecnologias Utilizadas
-Frontend
-React.js: Biblioteca JavaScript para construção de interfaces de usuário
+## Visão Geral
 
-TypeScript: Adiciona tipagem estática ao JavaScript para melhor desenvolvimento
+O FURIA Chat oferece uma experiência de chat em tempo real com diversas funcionalidades engajadoras, incluindo:
 
-Styled Components: Para estilização componentizada
+- **Mensagens em Tempo Real:** Troca de mensagens instantânea com outros torcedores.
+- **Comandos Especiais:** Utilize comandos como `!help`, `!cheer`, `!stats` e `!furia` para interagir de maneiras únicas.
+- **Reações:** Demonstre seu apoio e emoção com reações às mensagens.
+- **Respostas:** Responda diretamente a mensagens de outros usuários para manter o contexto da conversa.
+- **Edição e Exclusão de Mensagens:** Tenha controle sobre suas próprias mensagens.
+- **Menções:** Responda a usuários específicos para direcionar a conversa.
+- **Painel de Partida ao Vivo:** Acompanhe informações em tempo real sobre as partidas da FURIA.
+- **Badges de Conquistas:** Desbloqueie e exiba conquistas especiais.
+- **Gritos de Guerra:** Envie "cheers" para mostrar seu apoio fervoroso.
 
-Socket.IO Client: Para comunicação em tempo real com o servidor
+## Estrutura de Pastas
 
-React Router: Para navegação entre páginas
+frontend/
+├── public/
+│   └── ... (arquivos estáticos)
+└── src/
+├── assets/
+│   ├── Faze_Clan-logo.webp
+│   ├── furia-esports-logo.png
+│   ├── react.svg
+│   └── team-liguid-logo.png
+├── components/
+│   ├── AchievementBadge.jsx
+│   ├── LiveEvent.jsx
+│   ├── LiveMatchPanel.jsx
+│   ├── LiveMatchPanel.module.css
+│   ├── Message.jsx
+│   └── ... (outros componentes)
+├── pages/
+│   └── ChatPage.jsx
+├── services/
+│   └── esportsAPI.js
+├── styles/
+│   ├── ChatStyle.js
+│   └── ... (outros arquivos de estilo)
+├── App.css
+├── App.jsx
+├── index.css
+├── main.jsx
+└── ... (outros arquivos)
+├── .gitignore
+├── README.md
+├── eslint.config.js
+├── index.html
+├── package-lock.json
+├── package.json
+└── vite.config.js
 
-Backend
-Node.js: Ambiente de execução JavaScript server-side
+## Tecnologias Utilizadas
 
-Express.js: Framework para construção da API REST
+Este projeto frontend foi construído utilizando as seguintes tecnologias:
 
-Socket.IO: Para funcionalidades de WebSocket e comunicação em tempo real
+- **React (v19.0.0):** Biblioteca JavaScript para construção de interfaces de usuário.
+- **React DOM (v19.0.0):** Ponto de entrada para o DOM do React.
+- **React Router DOM (v7.5.2):** Para gerenciamento de rotas na aplicação (se aplicável, embora não explicitamente visto nos arquivos).
+- **React Transition Group (v4.4.5):** Para animações e transições de componentes.
+- **Styled Components (v6.1.17):** Para estilização de componentes com CSS-in-JS.
+- **Sass (v1.87.0):** Pré-processador CSS para estilos mais eficientes e organizados.
+- **Socket.IO Client (v4.8.1):** Para comunicação em tempo real com o backend.
+- **Axios (v1.9.0):** Cliente HTTP para fazer requisições para APIs.
+- **Vite (v6.3.1):** Ferramenta de build e servidor de desenvolvimento rápido.
+- **ESLint (v9.22.0):** Linter para garantir a qualidade e o estilo do código JavaScript.
 
-MongoDB: Banco de dados NoSQL para armazenamento de mensagens
+## Configuração e Execução
 
-Mongoose: ODM para interação com o MongoDB
+Para executar este projeto localmente, siga os passos abaixo:
 
-Outras Ferramentas
-ESLint: Para padronização e qualidade de código
+1.  **Clone o repositório:**
+    ```bash
+    git clone [https://docs.github.com/articles/referencing-and-citing-content](https://docs.github.com/articles/referencing-and-citing-content)
+    cd frontend
+    ```
 
-Prettier: Formatação automática de código
+2.  **Instale as dependências:**
+    ```bash
+    npm install
+    # ou
+    yarn install
+    # ou
+    pnpm install
+    ```
 
-Jest: Para testes unitários
+3.  **Inicie o servidor de desenvolvimento:**
+    ```bash
+    npm run dev
+    # ou
+    yarn dev
+    # ou
+    pnpm dev
+    ```
 
-Funcionalidades Principais
-Live Mode
-Conversas em tempo real com atualização instantânea de mensagens
+    Isso iniciará o frontend em um servidor de desenvolvimento local (geralmente em `http://localhost:5173`).
 
-Notificação quando outros usuários estão digitando
+## Scripts Disponíveis
 
-Indicadores de presença online/offline
+No `package.json`, você encontrará os seguintes scripts:
 
-Histórico de conversas recentes
+-   `dev`: Inicia o servidor de desenvolvimento Vite.
+-   `build`: Compila o projeto para produção.
+-   `lint`: Executa o ESLint para verificar problemas no código.
+-   `preview`: Inicia um servidor de pré-visualização para a build de produção.
 
-Offline Mode
-Envio de mensagens quando o destinatário está offline
+## Próximos Passos (Opcional)
 
-Notificação por e-mail (opcional) quando novas mensagens são recebidas
+Se houver planos futuros para o frontend, você pode mencioná-los aqui, como:
 
-Armazenamento seguro de mensagens até o destinatário voltar online
+-   Implementação de autenticação de usuários.
+-   Adição de mais comandos e funcionalidades interativas.
+-   Melhorias na interface do usuário e experiência do usuário.
+-   Testes unitários e de integração.
 
-Sincronização automática quando o usuário retorna
+## Contribuição
 
-Como Utilizar
-Pré-requisitos
-Node.js (v14 ou superior)
+Se você deseja contribuir para este projeto, por favor, siga as diretrizes de contribuição (se houver um arquivo `CONTRIBUTING.md`).
 
-MongoDB (local ou Atlas)
+## Licença
 
-Yarn ou npm
+[Sua Licença]
 
-Instalação
-Clone o repositório:
+---
 
-bash
-git clone https://github.com/CiceroGGS/furia-chat.git
-cd furia-chat
-Instale as dependências:
-
-bash
-yarn install
-# ou
-npm install
-Configure as variáveis de ambiente:
-Crie um arquivo .env na raiz do projeto com as seguintes variáveis:
-
-MONGODB_URI=sua_string_de_conexao_mongodb
-PORT=3001
-JWT_SECRET=seu_segredo_jwt
-EMAIL_SERVICE=servico_de_email (opcional)
-EMAIL_USER=seu_email (opcional)
-EMAIL_PASS=sua_senha (opcional)
-Executando o Projeto
-Inicie o servidor:
-
-bash
-yarn start:server
-# ou
-npm run start:server
-Inicie o cliente:
-
-bash
-yarn start:client
-# ou
-npm run start:client
-Acesse a aplicação no navegador:
-
-http://localhost:3000
-Scripts Úteis
-yarn build: Compila o projeto para produção
-
-yarn test: Executa os testes
-
-yarn lint: Verifica problemas de linting
-
-yarn format: Formata o código automaticamente
-
-Estrutura do Projeto
-furia-chat/
-├── client/              # Frontend React
-│   ├── public/          # Assets públicos
-│   └── src/             # Código fonte
-│       ├── components/  # Componentes React
-│       ├── pages/       # Páginas da aplicação
-│       ├── services/    # Serviços (API calls)
-│       └── styles/      # Estilos globais
-├── server/              # Backend Node.js
-│   ├── controllers/     # Lógica dos endpoints
-│   ├── models/          # Modelos do MongoDB
-│   ├── routes/          # Rotas da API
-│   └── sockets/         # Lógica do Socket.IO
-├── .env.example         # Exemplo de variáveis de ambiente
-└── package.json         # Dependências e scripts
-
-
-Contribuição
-Contribuições são bem-vindas! Siga os passos abaixo:
-
-Faça um fork do projeto
-
-Crie uma branch para sua feature (git checkout -b feature/AmazingFeature)
-
-Commit suas mudanças (git commit -m 'Add some AmazingFeature')
-
-Push para a branch (git push origin feature/AmazingFeature)
-
-Abra um Pull Request
-Contato
-Cicero Guilherme
-
-Link do Projeto: https://github.com/CiceroGGS/furia-chat
-
+**#GoFURIA** 🐆🔥
