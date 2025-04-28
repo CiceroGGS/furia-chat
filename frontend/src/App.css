@@ -17,14 +17,28 @@ body {
   padding: 0;
   font-family: "Poppins", sans-serif;
   background-color: var(--furia-darker);
+  color: var(--furia-text);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#root {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .chat-app {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  width: 100%;
   max-width: 1200px;
-  margin: 0 auto;
+  margin: 20px;
+  border-radius: 10px;
+  overflow: hidden;
   background-color: var(--furia-dark);
   color: var(--furia-text);
 }
@@ -230,36 +244,38 @@ textarea:focus {
   }
 }
 
-/* Garanta estilos básicos */
+/* Estilos gerais da aplicação */
 body {
-  background-color: #121212; /* Cor de fundo escura */
+  background-color: #121212;
   margin: 0;
   padding: 20px;
   color: white;
   font-family: "Arial", sans-serif;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#root {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
 .app-container {
   max-width: 1200px;
   margin: 0 auto;
-}
-
-body {
-  background-color: #121212;
-  margin: 0;
-  padding: 20px;
-}
-
-#root {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
+  width: 100%;
 }
 
 .live-match-panel {
   background: #1a1a1a !important;
-  margin: 20px auto !important;
+  margin: 20px 0 !important;
   max-width: 800px !important;
+  width: 100%;
 }
 
 .reply-indicator {
@@ -285,32 +301,4 @@ body {
 
 .reply-indicator button:hover {
   color: #ff884d;
-}
-
-.message {
-  /* Estilo padrão das mensagens */
-  padding: 10px;
-  margin: 5px 0;
-  border-radius: 5px;
-  background-color: #f0f0f0;
-}
-
-.message.reply {
-  /* Estilo para mensagens de resposta */
-  border-left: 4px solid #007bff; /* Borda de destaque */
-  background-color: #e1f5fe; /* Fundo diferenciando */
-}
-
-.message-reply-to {
-  font-size: 0.9em;
-  color: #666;
-  margin-top: 5px;
-  padding-left: 10px;
-  border-left: 2px solid #ccc;
-}
-
-.reply-icon {
-  font-size: 1.2em;
-  color: #007bff;
-  margin-right: 5px;
 }
