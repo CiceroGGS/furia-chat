@@ -1,4 +1,3 @@
-// backend/server.js
 require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
@@ -40,7 +39,6 @@ mongoose
   .then(() => console.log("✅ MongoDB conectado"))
   .catch((err) => console.error("❌ Erro MongoDB:", err));
 
-// Socket.IO
 const io = new Server(server, {
   cors: {
     origin: ["http://localhost:3000", "http://localhost:5173"],
@@ -68,7 +66,6 @@ io.on("connection", (socket) => {
     }
   })();
 
-  // mensagem normal
   socket.on("send_message", async (data) => {
     try {
       if (!data.message.trim()) throw new Error("Mensagem vazia");
@@ -82,7 +79,7 @@ io.on("connection", (socket) => {
           minute: "2-digit",
         }),
         isCommand: data.message.startsWith("!"),
-        parentMessageId: data.parentMessageId, // ADICIONE ESTA LINHA
+        parentMessageId: data.parentMessageId,
       });
       const saved = await doc.save();
       io.emit("new_message", saved.toObject());
@@ -92,7 +89,6 @@ io.on("connection", (socket) => {
     }
   });
 
-  // cheer
   socket.on("send_cheer", ({ username }) => {
     const count = Math.floor(Math.random() * 5) + 1;
     io.emit("cheer_update", { count, user: username || "Anônimo" });
@@ -103,7 +99,6 @@ io.on("connection", (socket) => {
   });
 });
 
-// health-check
 app.get("/health", (req, res) => {
   res.json({
     status: "healthy",
@@ -112,7 +107,6 @@ app.get("/health", (req, res) => {
   });
 });
 
-// erro global
 app.use((err, req, res, next) => {
   console.error("❌ Erro:", err.stack);
   res.status(500).json({ error: "Algo deu errado!" });

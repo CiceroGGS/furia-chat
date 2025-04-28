@@ -1,6 +1,7 @@
 const express = require("express");
 const ChatMessage = require("../models/ChatMessage");
 const router = express.Router();
+const { protect } = require("../middleware/authMiddleware");
 
 router.get("/", async (req, res) => {
   try {
@@ -17,7 +18,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.post("/", async (req, res) => {
+router.post("/", protect, async (req, res) => {
   try {
     const messageData = {
       ...req.body,
@@ -26,6 +27,8 @@ router.post("/", async (req, res) => {
         minute: "2-digit",
       }),
       isCommand: req.body.message.startsWith("!"),
+      parentMessageId: req.body.parentMessageId,
+      userId: req.user._id,
     };
 
     const message = new ChatMessage(messageData);
@@ -39,7 +42,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.patch("/:id", async (req, res) => {
+router.patch("/:id", protect, async (req, res) => {
   try {
     const message = await ChatMessage.findByIdAndUpdate(
       req.params.id,
@@ -58,7 +61,7 @@ router.patch("/:id", async (req, res) => {
   }
 });
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", protect, async (req, res) => {
   try {
     const message = await ChatMessage.findByIdAndUpdate(
       req.params.id,
@@ -74,14 +77,14 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
-router.post("/:id/react", async (req, res) => {
+router.post("/:id/react", protect, async (req, res) => {
   try {
     const message = await ChatMessage.findByIdAndUpdate(
       req.params.id,
       {
         $push: {
           reactions: {
-            userId: req.body.userId,
+            userId: req.user._id,
             emoji: req.body.emoji,
           },
         },
