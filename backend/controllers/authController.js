@@ -20,7 +20,7 @@ exports.registerUser = async (req, res) => {
       return res.status(409).json({ message: "Nome de usuário já existe." });
     }
 
-    // Verificar se o e-mail já existe
+    // Verificar se o e-mail já existe (se fornecido)
     if (email) {
       const existingUserByEmail = await User.findOne({ email });
       if (existingUserByEmail) {
@@ -68,7 +68,10 @@ exports.loginUser = async (req, res) => {
       expiresIn: "1h",
     });
 
-    res.status(200).json({ message: "Login bem-sucedido!", token });
+    // Enviar o token e o username na resposta
+    res
+      .status(200)
+      .json({ message: "Login bem-sucedido!", token, username: user.username });
   } catch (error) {
     console.error("Erro ao logar usuário:", error);
     res.status(500).json({ message: "Erro ao logar o usuário." });

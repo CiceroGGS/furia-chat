@@ -22,11 +22,11 @@ function ChatPage() {
   const socket = useRef(null);
   const endRef = useRef(null);
   const authToken = localStorage.getItem("authToken"); // Obtenha o token do localStorage
+  const localUsername = localStorage.getItem("username"); // Recupere o username
 
   useEffect(() => {
     if (authToken) {
       socket.current = io("http://localhost:5000", {
-        // Inclua as opções de autenticação
         auth: {
           token: authToken,
         },
@@ -124,7 +124,7 @@ function ChatPage() {
                     })()
                   : null,
               }}
-              currentUser={m.username}
+              currentUser={localUsername}
               onEdit={(id, content) => {
                 socket.current.emit("edit_message", { id, content });
               }}

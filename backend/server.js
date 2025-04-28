@@ -5,7 +5,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
-const User = require("./models/user");
+const User = require("./models/user"); // Importe o modelo User
 
 const chatRoutes = require("./routes/chatRoutes");
 const liveMatchRoutes = require("./routes/liveMatchRoutes");
@@ -118,9 +118,10 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("send_cheer", ({ username }) => {
+  socket.on("send_cheer", () => {
+    // O backend agora usa o socket.user para identificar o usuário
     const count = Math.floor(Math.random() * 5) + 1;
-    io.emit("cheer_update", { count, user: socket.user.username || "Anônimo" }); // Use o username autenticado
+    io.emit("cheer_update", { count, user: socket.user.username });
   });
 
   socket.on("disconnect", () => {

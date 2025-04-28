@@ -29,6 +29,7 @@ router.post("/", protect, async (req, res) => {
       isCommand: req.body.message.startsWith("!"),
       parentMessageId: req.body.parentMessageId,
       userId: req.user._id,
+      username: req.user.username, // Adicione o username do usuário autenticado
     };
 
     const message = new ChatMessage(messageData);
