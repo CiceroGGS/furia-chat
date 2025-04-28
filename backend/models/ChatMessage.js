@@ -1,4 +1,8 @@
-const chatMessageSchema = new mongoose.Schema(
+// models/ChatMessage.js
+const mongoose = require("mongoose"); // <-- Import do mongoose
+const { Schema, model } = mongoose;
+
+const chatMessageSchema = new Schema(
   {
     message: {
       type: String,
@@ -25,7 +29,7 @@ const chatMessageSchema = new mongoose.Schema(
       default: false,
     },
     parentMessageId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: "ChatMessage",
     },
     reactions: [
@@ -40,3 +44,5 @@ const chatMessageSchema = new mongoose.Schema(
     versionKey: false,
   }
 );
+
+module.exports = model("ChatMessage", chatMessageSchema);

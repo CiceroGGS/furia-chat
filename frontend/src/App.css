@@ -286,3 +286,31 @@ body {
 .reply-indicator button:hover {
   color: #ff884d;
 }
+
+.message {
+  /* Estilo padrão das mensagens */
+  padding: 10px;
+  margin: 5px 0;
+  border-radius: 5px;
+  background-color: #f0f0f0;
+}
+
+.message.reply {
+  /* Estilo para mensagens de resposta */
+  border-left: 4px solid #007bff; /* Borda de destaque */
+  background-color: #e1f5fe; /* Fundo diferenciando */
+}
+
+.message-reply-to {
+  font-size: 0.9em;
+  color: #666;
+  margin-top: 5px;
+  padding-left: 10px;
+  border-left: 2px solid #ccc;
+}
+
+.reply-icon {
+  font-size: 1.2em;
+  color: #007bff;
+  margin-right: 5px;
+}

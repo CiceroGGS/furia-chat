@@ -1,4 +1,4 @@
-// server.js
+// backend/server.js
 require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
@@ -17,7 +17,8 @@ const server = http.createServer(app);
 app.use(
   cors({
     origin: ["http://localhost:3000", "http://localhost:5173"],
-    methods: ["GET", "POST"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   })
 );
@@ -81,6 +82,7 @@ io.on("connection", (socket) => {
           minute: "2-digit",
         }),
         isCommand: data.message.startsWith("!"),
+        parentMessageId: data.parentMessageId, // ADICIONE ESTA LINHA
       });
       const saved = await doc.save();
       io.emit("new_message", saved.toObject());

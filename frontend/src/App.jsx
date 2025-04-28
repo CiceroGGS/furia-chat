@@ -223,7 +223,22 @@ const App = () => {
         {messages.map((msg) => (
           <Message
             key={msg._id}
-            message={msg}
+            message={{
+              ...msg,
+              parentMessagePreview: msg.parentMessageId
+                ? (() => {
+                    const parentMsg = messages.find(
+                      (m) => m._id === msg.parentMessageId
+                    );
+                    return parentMsg
+                      ? {
+                          username: parentMsg.username,
+                          message: parentMsg.message,
+                        }
+                      : null;
+                  })()
+                : null,
+            }}
             currentUser={username}
             onEdit={handleEditMessage}
             onDelete={handleDeleteMessage}

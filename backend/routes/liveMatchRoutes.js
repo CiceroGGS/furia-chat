@@ -1,4 +1,4 @@
-// routes/liveMatchRoutes.js
+// backend/routes/liveMatchRoutes.js
 const express = require("express");
 const HLTV = require("hltv");
 const router = express.Router();
@@ -12,15 +12,26 @@ router.get("/", async (req, res) => {
         (m.live || m.upcoming)
     );
     if (!furia) return res.status(404).json({ error: "Nenhuma partida FURIA" });
+
+    const getBackendLogo = (name) => {
+      const L = {
+        FURIA: "https://img-cdn.hltv.org/teamlogo/8298/...png",
+        "Team Liquid": null,
+        "FaZe Clan": null,
+        "Natus Vincere": null,
+      };
+      return L[name] || null;
+    };
+
     res.json({
       team1: {
         name: furia.team1.name,
-        logo: getLogo(furia.team1.name),
+        logo: getBackendLogo(furia.team1.name),
         score: furia.team1.result,
       },
       team2: {
         name: furia.team2.name,
-        logo: getLogo(furia.team2.name),
+        logo: getBackendLogo(furia.team2.name),
         score: furia.team2.result,
       },
       event: furia.event.name,
@@ -33,15 +44,5 @@ router.get("/", async (req, res) => {
     res.status(500).json({ error: "HLTV API indisponível" });
   }
 });
-
-function getLogo(name) {
-  const L = {
-    FURIA: "https://img-cdn.hltv.org/teamlogo/8298/...png",
-    "Team Liquid": "...",
-    "FaZe Clan": "...",
-    "Natus Vincere": "...",
-  };
-  return L[name] || "https://www.hltv.org/img/static/team/placeholder.svg";
-}
 
 module.exports = router;

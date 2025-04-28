@@ -2,7 +2,6 @@ const express = require("express");
 const ChatMessage = require("../models/ChatMessage");
 const router = express.Router();
 
-// GET todas as mensagens (últimas 50)
 router.get("/", async (req, res) => {
   try {
     const messages = await ChatMessage.find()
@@ -18,7 +17,6 @@ router.get("/", async (req, res) => {
   }
 });
 
-// POST nova mensagem
 router.post("/", async (req, res) => {
   try {
     const messageData = {
@@ -41,7 +39,6 @@ router.post("/", async (req, res) => {
   }
 });
 
-// Editar mensagem
 router.patch("/:id", async (req, res) => {
   try {
     const message = await ChatMessage.findByIdAndUpdate(
@@ -61,7 +58,6 @@ router.patch("/:id", async (req, res) => {
   }
 });
 
-// Excluir mensagem (soft delete)
 router.delete("/:id", async (req, res) => {
   try {
     const message = await ChatMessage.findByIdAndUpdate(
@@ -78,7 +74,6 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
-// Adicionar reação
 router.post("/:id/react", async (req, res) => {
   try {
     const message = await ChatMessage.findByIdAndUpdate(
