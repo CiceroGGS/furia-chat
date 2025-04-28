@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { io } from "socket.io-client";
 import Message from "../components/Message";
 import {
@@ -20,21 +20,39 @@ function ChatPage() {
   const [lastCheerUser, setLastCheerUser] = useState("");
   const [replyingTo, setReplyingTo] = useState(null);
   const socket = useRef(null);
-  const username = `FURIA_Fan_${Math.floor(Math.random() * 1000)}`;
   const endRef = useRef(null);
+  const authToken = localStorage.getItem("authToken"); // Obtenha o token do localStorage
 
   useEffect(() => {
-    socket.current = io("http://localhost:5000");
-    socket.current.on("initial_messages", (msgs) => setMessages(msgs || []));
-    socket.current.on("new_message", (m) =>
-      setMessages((prev) => [...prev, m])
-    );
-    socket.current.on("cheer_update", (d) => {
-      setCheerCount(d.count);
-      setLastCheerUser(d.user);
-    });
-    return () => socket.current.disconnect();
-  }, []);
+    if (authToken) {
+      socket.current = io("http://localhost:5000", {
+        // Inclua as opções de autenticação
+        auth: {
+          token: authToken,
+        },
+      });
+
+      socket.current.on("connect", () =>
+        console.log("Conectado ao servidor Socket.IO")
+      );
+      socket.current.on("disconnect", () =>
+        console.log("Desconectado do servidor Socket.IO")
+      );
+      socket.current.on("initial_messages", (msgs) => setMessages(msgs || []));
+      socket.current.on("new_message", (m) =>
+        setMessages((prev) => [...prev, m])
+      );
+      socket.current.on("cheer_update", (d) => {
+        setCheerCount(d.count);
+        setLastCheerUser(d.user);
+      });
+
+      return () => socket.current.disconnect();
+    } else {
+      console.log("Token de autenticação não encontrado.");
+      // Lógica para lidar com usuário não autenticado (redirecionar para login, exibir mensagem, etc.)
+    }
+  }, [authToken]); // Re-executa se o authToken mudar
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -42,11 +60,10 @@ function ChatPage() {
 
   const handleSend = (e) => {
     e.preventDefault();
-    if (!newMsg.trim()) return;
+    if (!newMsg.trim() || !socket.current?.connected) return;
 
     socket.current.emit("send_message", {
       message: newMsg,
-      username,
       parentMessageId: replyingTo,
     });
 
@@ -55,7 +72,14 @@ function ChatPage() {
   };
 
   const handleCheer = () => {
-    socket.current.emit("send_cheer", { username });
+    if (socket.current?.connected && authToken) {
+      socket.current.emit("send_cheer", {}); // O backend agora deve identificar o usuário pelo token
+    } else {
+      console.log(
+        "Usuário não autenticado ou não conectado para enviar cheer."
+      );
+      // Lógica para informar o usuário que ele precisa estar logado
+    }
   };
 
   const handleReply = (messageId) => {
@@ -100,7 +124,7 @@ function ChatPage() {
                     })()
                   : null,
               }}
-              currentUser={username}
+              currentUser={m.username}
               onEdit={(id, content) => {
                 socket.current.emit("edit_message", { id, content });
               }}
@@ -108,7 +132,7 @@ function ChatPage() {
                 socket.current.emit("delete_message", { id });
               }}
               onReact={(id, emoji) => {
-                socket.current.emit("react_message", { id, emoji, username });
+                socket.current.emit("react_message", { id, emoji });
               }}
               onReply={handleReply}
             />
@@ -154,8 +178,18 @@ function ChatPage() {
         <CheerButton onClick={handleCheer} type="button">
           🔥
         </CheerButton>
-        <SendButton type="submit">ENVIAR</SendButton>
+        <SendButton
+          type="submit"
+          disabled={!socket.current?.connected || !authToken}
+        >
+          ENVIAR
+        </SendButton>
       </InputContainer>
+      {!authToken && (
+        <div style={{ textAlign: "center", padding: "1rem", color: "gray" }}>
+          Você precisa estar logado para participar do chat.
+        </div>
+      )}
     </ChatContainer>
   );
 }
