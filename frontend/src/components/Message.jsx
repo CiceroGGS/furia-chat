@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
-import styled from "styled-components";
 import PropTypes from "prop-types";
+import styled from "styled-components";
 
 const MessageContainer = styled.div`
   position: relative;
@@ -10,100 +10,19 @@ const MessageContainer = styled.div`
   margin: 0.5rem 0;
   border-left: 3px solid ${(p) => (p.$isUser ? "#ff5500" : "#333")};
   opacity: ${(p) => (p.$deleted ? 0.5 : 1)};
-  transition: all 0.2s ease;
-
-  ${({ $isReply }) =>
-    !$isReply &&
-    `
-      /* Estilos específicos para mensagens NÃO respondidas */
-      border-left: 3px solid #555; /* Uma cor diferente para mensagens normais */
-      /* background: #222; /* Um background ligeiramente diferente se desejar */
-    `}
-
-  ${({ $isReply }) =>
-    $isReply &&
-    `
-      background: rgba(30, 30, 30, 0.9);
-      border-left: 3px solid #ffaa00;
-      margin-left: 2rem;
-      position: relative;
-
-      &::before {
-        content: "";
-        position: absolute;
-        left: -1.5rem;
-        top: 50%;
-        height: 2px;
-        width: 1rem;
-        background: #ff5500;
-        opacity: 0.5;
-      }
-    `}
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  }
-`;
-
-const ReplyBadge = styled.div`
-  position: absolute;
-  top: -12px;
-  left: ${(p) => (p.$isUser ? "auto" : "1rem")};
-  right: ${(p) => (p.$isUser ? "1rem" : "auto")};
-  background: #ff5500;
-  color: white;
-  padding: 0.2rem 0.8rem;
-  border-radius: 12px;
-  font-size: 0.7rem;
-  font-weight: bold;
-  z-index: 1;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-`;
-
-const ReplyQuote = styled.div`
-  background: rgba(35, 35, 35, 0.8);
-  border-left: 3px solid #ffaa00;
-  padding: 0.5rem;
-  margin-bottom: 0.8rem;
-  border-radius: 4px;
-  font-size: 0.85rem;
-  color: #aaa;
 `;
 
 const MessageHeader = styled.div`
   display: flex;
   justify-content: space-between;
-  align-items: center;
   margin-bottom: 0.5rem;
-
-  ${({ $isReply }) =>
-    $isReply &&
-    `
-      color: #ffaa00;
-      font-size: 0.9rem;
-    `}
-
-  ${({ $isReply }) =>
-    !$isReply &&
-    `
-      color: #ff5500;
-      font-size: 1rem;
-    `}
+  color: ${(p) => (p.$isReply ? "#ffaa00" : "#ff5500")};
 `;
 
 const MessageContent = styled.div`
   word-break: break-word;
-  line-height: 1.5;
   color: ${(p) => (p.$deleted ? "#666" : "#fff")};
   font-style: ${(p) => (p.$deleted ? "italic" : "normal")};
-
-  ${({ $isReply }) =>
-    $isReply &&
-    `
-      font-size: 0.9rem;
-      color: #e0e0e0;
-    `}
 `;
 
 const MessageActions = styled.div`
@@ -115,7 +34,7 @@ const MessageActions = styled.div`
   opacity: 0;
   transition: opacity 0.2s;
 
-  ${MessageContainer}:hover & {
+  &:hover {
     opacity: 1;
   }
 `;
@@ -127,8 +46,6 @@ const ActionButton = styled.button`
   cursor: pointer;
   padding: 0.3rem;
   border-radius: 4px;
-  display: flex;
-  align-items: center;
 
   &:hover {
     background: rgba(255, 85, 0, 0.2);
@@ -136,72 +53,30 @@ const ActionButton = styled.button`
   }
 `;
 
-const ReactionsContainer = styled.div`
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 0.8rem;
-  flex-wrap: wrap;
-`;
-
 const ReactionButton = styled.button`
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
-  border-radius: 15px;
-  padding: 0.3rem 0.6rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  transition: all 0.2s;
-
-  &:hover {
-    background: rgba(255, 85, 0, 0.2);
-    transform: scale(1.1);
-  }
-`;
-
-const EditTextarea = styled.textarea`
-  width: 100%;
-  background: #333;
-  border: 1px solid #ff5500;
-  border-radius: 4px;
-  color: white;
-  padding: 0.5rem;
-  margin-bottom: 0.5rem;
-  font-family: inherit;
-`;
-
-const ReactionSelectorContainer = styled.div`
-  position: absolute;
-  bottom: 20px; /* Ajuste a posição conforme necessário */
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(30, 30, 30, 0.9);
-  border-radius: 8px;
-  padding: 0.5rem;
-  display: flex;
-  gap: 0.5rem;
-  z-index: 2;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-`;
-
-const ReactionSelectorButton = styled.button`
   background: none;
   border: none;
-  color: white;
-  font-size: 1.2rem;
+  color: #fff;
   cursor: pointer;
-  outline: none;
+  font-size: 1rem;
+  margin-right: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
 
   &:hover {
-    transform: scale(1.2);
+    opacity: 0.7;
   }
 `;
 
-const ReactionTriggerButton = styled(ActionButton)`
-  /* Estilos específicos para o botão de reação */
-  font-size: 1rem;
-  padding: 0.3rem 0.5rem;
+const ReplyIndicator = styled.div`
+  background-color: rgba(255, 165, 0, 0.1);
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  color: #ffaa00;
+  border-left: 3px solid #ffaa00;
 `;
 
 const Message = ({
@@ -214,119 +89,134 @@ const Message = ({
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(message.message);
-  const isReply = Boolean(message.parentMessageId);
   const [showReactions, setShowReactions] = useState(false);
   const reactionSelectorRef = useRef(null);
-  const reactionTriggerRef = useRef(null);
 
   const commonEmojis = ["🔥", "❤️", "🚀", "👏", "💯", "😂", "😮", "🎉"];
 
   const handleSaveEdit = () => {
-    onEdit(message._id, editedContent);
-    setIsEditing(false);
+    if (typeof onEdit === "function") {
+      onEdit(message._id, editedContent);
+      setIsEditing(false);
+    }
   };
 
   const handleReactionClick = (emoji) => {
-    onReact(message._id, emoji);
-    setShowReactions(false);
+    if (typeof onReact === "function") {
+      onReact(message._id, emoji);
+      setShowReactions(false);
+    }
   };
 
-  const toggleReactions = () => {
-    setShowReactions(!showReactions);
-  };
-
-  // Fechar o seletor de reações ao clicar fora
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
-        showReactions &&
         reactionSelectorRef.current &&
-        !reactionSelectorRef.current.contains(event.target) &&
-        reactionTriggerRef.current &&
-        !reactionTriggerRef.current.contains(event.target)
+        !reactionSelectorRef.current.contains(event.target)
       ) {
         setShowReactions(false);
       }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [showReactions, reactionSelectorRef, reactionTriggerRef]);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const renderReactions = () => {
+    const reactionCounts = {};
+    message.reactions.forEach((r) => {
+      reactionCounts[r.emoji] = (reactionCounts[r.emoji] || 0) + 1;
+    });
+
+    return Object.entries(reactionCounts).map(([emoji, count]) => (
+      <ReactionButton
+        key={emoji}
+        onClick={() => onReact(message._id, emoji)}
+        aria-label={`Reagir com ${emoji}`}
+      >
+        {emoji}
+        <span>{count}</span>
+      </ReactionButton>
+    ));
+  };
 
   return (
     <MessageContainer
       $isUser={message.username === currentUser}
       $deleted={message.deleted}
-      $isReply={isReply}
     >
-      {isReply && (
-        <ReplyBadge $isUser={message.username === currentUser}>
-          Respondendo
-        </ReplyBadge>
-      )}
-
-      {isReply && message.parentMessagePreview && (
-        <ReplyQuote>
-          <b>{message.parentMessagePreview.username}:</b>{" "}
-          {message.parentMessagePreview.message.substring(0, 50)}
-          {message.parentMessagePreview.message.length > 50 ? "..." : ""}
-        </ReplyQuote>
-      )}
-
-      <MessageHeader $isReply={isReply}>
+      <MessageHeader $isReply={Boolean(message.parentMessageId)}>
         <div>
-          <span style={{ fontWeight: "bold" }}>{message.username}</span>
+          <span>{message.username}</span>
           <span
             style={{ marginLeft: "0.5rem", color: "#666", fontSize: "0.8rem" }}
           >
-            {message.time}
-            {message.edited && !message.deleted && " (editado)"}
+            {new Date(message.createdAt).toLocaleTimeString()}
+            {message.edited && " (editado)"}
           </span>
         </div>
 
         {!message.deleted && (
           <MessageActions>
-            <ActionButton onClick={() => onReply(message._id)}>↪</ActionButton>
+            <ActionButton
+              onClick={() =>
+                typeof onReply === "function" && onReply(message._id)
+              }
+            >
+              ↩
+            </ActionButton>
             {message.username === currentUser && (
               <>
                 <ActionButton onClick={() => setIsEditing(!isEditing)}>
                   ✏️
                 </ActionButton>
-                <ActionButton onClick={() => onDelete(message._id)}>
+                <ActionButton
+                  onClick={() =>
+                    typeof onDelete === "function" && onDelete(message._id)
+                  }
+                >
                   🗑️
                 </ActionButton>
               </>
             )}
-            <ReactionTriggerButton
-              onClick={toggleReactions}
-              ref={reactionTriggerRef}
-            >
-              {showReactions ? "×" : "😊"}{" "}
-              {/* Use um emoji de sorriso ou outro ícone */}
-            </ReactionTriggerButton>
+            <ActionButton onClick={() => setShowReactions(!showReactions)}>
+              😊
+            </ActionButton>
           </MessageActions>
         )}
       </MessageHeader>
+      {message.parentMessageId && (
+        <ReplyIndicator>
+          Respondendo a: <b>{message.parentMessageId.username}</b>
+          <br />
+          <div
+            style={{
+              marginLeft: "10px",
+              fontStyle: "italic",
+              color: "#888",
+              fontSize: "0.9em",
+            }}
+          >
+            "{message.parentMessageId.message}"
+          </div>
+        </ReplyIndicator>
+      )}
 
       {message.deleted ? (
-        <MessageContent $deleted $isReply={isReply}>
-          Mensagem excluída
-        </MessageContent>
+        <MessageContent $deleted>Mensagem excluída</MessageContent>
       ) : isEditing ? (
         <>
-          <EditTextarea
+          <textarea
             value={editedContent}
             onChange={(e) => setEditedContent(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                handleSaveEdit();
-              }
+            style={{
+              width: "100%",
+              minHeight: "60px",
+              background: "#333",
+              color: "white",
             }}
           />
-          <div style={{ display: "flex", gap: "0.5rem" }}>
+          <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>
             <ActionButton onClick={handleSaveEdit}>Salvar</ActionButton>
             <ActionButton onClick={() => setIsEditing(false)}>
               Cancelar
@@ -334,44 +224,44 @@ const Message = ({
           </div>
         </>
       ) : (
-        <MessageContent $isReply={isReply}>
-          {message.message.split("\n").map((line, idx) => (
-            <p key={idx}>{line}</p>
+        <MessageContent>
+          {message.message.split("\n").map((line, i) => (
+            <p key={i}>{line}</p>
           ))}
         </MessageContent>
       )}
+      {renderReactions()}
 
       {showReactions && (
-        <ReactionSelectorContainer ref={reactionSelectorRef}>
+        <div
+          ref={reactionSelectorRef}
+          style={{
+            position: "absolute",
+            bottom: "100%",
+            right: 0,
+            background: "#333",
+            padding: "0.5rem",
+            borderRadius: "8px",
+            display: "flex",
+            gap: "0.5rem",
+            zIndex: 10,
+          }}
+        >
           {commonEmojis.map((emoji) => (
-            <ReactionSelectorButton
+            <button
               key={emoji}
               onClick={() => handleReactionClick(emoji)}
+              style={{
+                background: "none",
+                border: "none",
+                fontSize: "1.2rem",
+                cursor: "pointer",
+              }}
             >
               {emoji}
-            </ReactionSelectorButton>
+            </button>
           ))}
-        </ReactionSelectorContainer>
-      )}
-
-      {message.reactions && message.reactions.length > 0 && !showReactions && (
-        <ReactionsContainer>
-          {message.reactions
-            .reduce((acc, reaction) => {
-              const existing = acc.find((r) => r.emoji === reaction.emoji);
-              if (existing) {
-                existing.count++;
-              } else {
-                acc.push({ emoji: reaction.emoji, count: 1 });
-              }
-              return acc;
-            }, [])
-            .map((reactedEmoji) => (
-              <ReactionButton key={reactedEmoji.emoji}>
-                {reactedEmoji.emoji} {reactedEmoji.count}
-              </ReactionButton>
-            ))}
-        </ReactionsContainer>
+        </div>
       )}
     </MessageContainer>
   );
@@ -382,15 +272,20 @@ Message.propTypes = {
     _id: PropTypes.string.isRequired,
     username: PropTypes.string.isRequired,
     message: PropTypes.string.isRequired,
-    time: PropTypes.string,
+    createdAt: PropTypes.string,
     edited: PropTypes.bool,
     deleted: PropTypes.bool,
-    parentMessageId: PropTypes.string,
-    parentMessagePreview: PropTypes.shape({
-      username: PropTypes.string,
-      message: PropTypes.string,
+    parentMessageId: PropTypes.shape({
+      username: PropTypes.string.isRequired,
+      message: PropTypes.string.isRequired,
+      createdAt: PropTypes.string,
     }),
-    reactions: PropTypes.array,
+    reactions: PropTypes.arrayOf(
+      PropTypes.shape({
+        userId: PropTypes.string.isRequired,
+        emoji: PropTypes.string.isRequired,
+      })
+    ),
   }).isRequired,
   currentUser: PropTypes.string,
   onEdit: PropTypes.func.isRequired,
