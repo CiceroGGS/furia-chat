@@ -28,6 +28,9 @@ body {
   place-items: center;
   min-width: 320px;
   min-height: 100vh;
+  /* É importante que o background-color aqui não esteja forçando um preto */
+  /* Se o tema escuro for controlado principalmente pelo App.css, podemos deixar o padrão aqui como o do :root */
+  /* background-color: #242424; /* Ou deixe em branco para herdar */
 }
 
 h1 {
@@ -65,4 +68,7 @@ button:focus-visible {
   button {
     background-color: #f9f9f9;
   }
+  /* body {
+    background-color: #ffffff;
+  } */
 }

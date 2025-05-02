@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useRef } from "react";
-import { io } from "socket.io-client";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import Message from "../components/Message";
+import LiveMatchPanel from "../components/LiveMatchPanel";
+import useSocket from "../hooks/useSocket";
 import {
   ChatContainer,
   Header,
-  LiveMatchPanel,
   CheerBanner,
   MessageList,
   InputContainer,
@@ -19,82 +20,114 @@ function ChatPage() {
   const [cheerCount, setCheerCount] = useState(0);
   const [lastCheerUser, setLastCheerUser] = useState("");
   const [replyingTo, setReplyingTo] = useState(null);
-  const socket = useRef(null);
   const endRef = useRef(null);
-  const authToken = localStorage.getItem("authToken"); // Obtenha o token do localStorage
-  const localUsername = localStorage.getItem("username"); // Recupere o username
+  const authToken = localStorage.getItem("authToken");
+  const localUsername = localStorage.getItem("username");
+  const navigate = useNavigate();
+  const socket = useSocket(authToken);
 
+  // Comandos disponíveis
+  const commands = {
+    help: () => addSystemMessage("Comandos disponíveis: !help, !cheer, !furia"),
+    cheer: () => socket?.emit("send_cheer"),
+    furia: () => addSystemMessage("⚡ FURIA Esports - Fundada em 2017"),
+  };
+
+  const addSystemMessage = (text) => {
+    const systemMessage = {
+      _id: Date.now().toString(),
+      username: "Sistema",
+      message: text,
+      time: new Date().toLocaleTimeString(),
+      isSystem: true,
+    };
+    setMessages((prev) => [...prev, systemMessage]);
+  };
+
+  // Carregar mensagens iniciais
   useEffect(() => {
-    if (authToken) {
-      socket.current = io("http://localhost:5000", {
-        auth: {
-          token: authToken,
-        },
-      });
-
-      socket.current.on("connect", () =>
-        console.log("Conectado ao servidor Socket.IO")
-      );
-      socket.current.on("disconnect", () =>
-        console.log("Desconectado do servidor Socket.IO")
-      );
-      socket.current.on("initial_messages", (msgs) => setMessages(msgs || []));
-      socket.current.on("new_message", (m) =>
-        setMessages((prev) => [...prev, m])
-      );
-      socket.current.on("cheer_update", (d) => {
-        setCheerCount(d.count);
-        setLastCheerUser(d.user);
-      });
-
-      return () => socket.current.disconnect();
-    } else {
-      console.log("Token de autenticação não encontrado.");
-      // Lógica para lidar com usuário não autenticado (redirecionar para login, exibir mensagem, etc.)
+    if (!authToken) {
+      navigate("/login");
+      return;
     }
-  }, [authToken]); // Re-executa se o authToken mudar
 
+    const loadMessages = async () => {
+      try {
+        const response = await fetch("http://localhost:5000/api/chat", {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        });
+        const data = await response.json();
+        setMessages(data);
+      } catch (error) {
+        console.error("Erro ao carregar mensagens:", error);
+      }
+    };
+
+    loadMessages();
+  }, [authToken, navigate]);
+
+  // Configurar listeners do socket
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, cheerCount]);
+    if (!socket) return;
 
-  const handleSend = (e) => {
-    e.preventDefault();
-    if (!newMsg.trim() || !socket.current?.connected) return;
-
-    socket.current.emit("send_message", {
-      message: newMsg,
-      parentMessageId: replyingTo,
+    socket.on("new_message", (newMessage) => {
+      setMessages((prev) => [...prev, newMessage]);
     });
 
-    setNewMsg("");
-    setReplyingTo(null);
-  };
+    socket.on("cheer_update", (data) => {
+      setCheerCount(data.count);
+      setLastCheerUser(data.user);
+      addSystemMessage(`🎉 ${data.user} fez um grito de guerra!`);
+    });
 
-  const handleCheer = () => {
-    if (socket.current?.connected && authToken) {
-      socket.current.emit("send_cheer", {}); // O backend agora deve identificar o usuário pelo token
-    } else {
-      console.log(
-        "Usuário não autenticado ou não conectado para enviar cheer."
-      );
-      // Lógica para informar o usuário que ele precisa estar logado
-    }
-  };
+    return () => {
+      socket.off("new_message");
+      socket.off("cheer_update");
+    };
+  }, [socket]);
 
-  const handleReply = (messageId) => {
-    const messageToReply = messages.find((m) => m._id === messageId);
-    setReplyingTo(messageId);
-    setNewMsg(`@${messageToReply.username} `);
-  };
+  // Auto-scroll
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const handleSend = useCallback(
+    (e) => {
+      e.preventDefault();
+      if (!newMsg.trim()) return;
+
+      if (newMsg.startsWith("!")) {
+        const command = newMsg.split(" ")[0].substring(1).toLowerCase();
+        commands[command]?.();
+      } else {
+        socket?.emit("send_message", {
+          message: newMsg,
+          parentMessageId: replyingTo,
+        });
+      }
+
+      setNewMsg("");
+      setReplyingTo(null);
+    },
+    [newMsg, replyingTo, socket, commands]
+  );
+
+  const handleReply = useCallback(
+    (messageId) => {
+      const messageToReply = messages.find((m) => m._id === messageId);
+      setReplyingTo(messageId);
+      setNewMsg(`@${messageToReply.username} `);
+    },
+    [messages]
+  );
 
   return (
     <ChatContainer>
       <Header>FURIA CHAT</Header>
 
-      <LiveMatchPanel>
-        {/* conteúdo ou componentes do painel ao vivo */}
-      </LiveMatchPanel>
+      <LiveMatchPanel />
 
       {cheerCount > 0 && (
         <CheerBanner>
@@ -103,71 +136,27 @@ function ChatPage() {
       )}
 
       <MessageList>
-        {messages
-          ?.filter((msg) => msg)
-          .map((m) => (
-            <Message
-              key={m._id}
-              message={{
-                ...m,
-                parentMessagePreview: m.parentMessageId
-                  ? (() => {
-                      const parentMsg = messages.find(
-                        (msg) => msg._id === m.parentMessageId
-                      );
-                      return parentMsg
-                        ? {
-                            username: parentMsg.username,
-                            message: parentMsg.message,
-                          }
-                        : null;
-                    })()
-                  : null,
-              }}
-              currentUser={localUsername}
-              onEdit={(id, content) => {
-                socket.current.emit("edit_message", { id, content });
-              }}
-              onDelete={(id) => {
-                socket.current.emit("delete_message", { id });
-              }}
-              onReact={(id, emoji) => {
-                socket.current.emit("react_message", { id, emoji });
-              }}
-              onReply={handleReply}
-            />
-          ))}
+        {messages.map((m) => (
+          <Message
+            key={m._id}
+            message={{
+              ...m,
+              parentMessagePreview: m.parentMessageId
+                ? messages.find((msg) => msg._id === m.parentMessageId)
+                : null,
+            }}
+            currentUser={localUsername}
+            onReply={handleReply}
+          />
+        ))}
         <div ref={endRef} />
       </MessageList>
 
       <InputContainer onSubmit={handleSend}>
         {replyingTo && (
-          <div
-            style={{
-              background: "rgba(255,85,0,0.1)",
-              padding: "8px",
-              borderRadius: "4px",
-              marginBottom: "8px",
-              fontSize: "0.9rem",
-            }}
-          >
-            Respondendo a:{" "}
-            {messages
-              .find((m) => m._id === replyingTo)
-              ?.message.substring(0, 30)}
-            ...
-            <button
-              onClick={() => setReplyingTo(null)}
-              style={{
-                background: "none",
-                border: "none",
-                color: "#ff5500",
-                marginLeft: "8px",
-                cursor: "pointer",
-              }}
-            >
-              ×
-            </button>
+          <div className="reply-preview">
+            Respondendo a: {messages.find((m) => m._id === replyingTo)?.message}
+            <button onClick={() => setReplyingTo(null)}>×</button>
           </div>
         )}
         <MessageInput
@@ -175,21 +164,17 @@ function ChatPage() {
           onChange={(e) => setNewMsg(e.target.value)}
           placeholder="Envie uma mensagem..."
         />
-        <CheerButton onClick={handleCheer} type="button">
+        <CheerButton
+          onClick={() => socket?.emit("send_cheer")}
+          type="button"
+          disabled={!socket?.connected}
+        >
           🔥
         </CheerButton>
-        <SendButton
-          type="submit"
-          disabled={!socket.current?.connected || !authToken}
-        >
+        <SendButton type="submit" disabled={!socket?.connected}>
           ENVIAR
         </SendButton>
       </InputContainer>
-      {!authToken && (
-        <div style={{ textAlign: "center", padding: "1rem", color: "gray" }}>
-          Você precisa estar logado para participar do chat.
-        </div>
-      )}
     </ChatContainer>
   );
 }

@@ -9,26 +9,21 @@ const protect = async (req, res, next) => {
     req.headers.authorization.startsWith("Bearer")
   ) {
     try {
-      // Obter o token do cabeçalho
       token = req.headers.authorization.split(" ")[1];
-
-      // Verificar o token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-      // Buscar o usuário pelo ID decodificado no token (excluindo a senha)
+      if (decoded.exp < Date.now() / 1000) {
+        return res.status(401).json({ error: "Token expirado" });
+      }
       req.user = await User.findById(decoded.userId).select("-password");
-
-      next(); // Permitir que a requisição prossiga para a próxima middleware ou rota
+      next();
     } catch (error) {
-      console.error("Erro na autenticação:", error);
-      res.status(401).json({ message: "Não autorizado, token inválido." });
+      console.error(error);
+      res.status(401).json({ error: "Não autorizado, token falhou" });
     }
   }
 
   if (!token) {
-    res
-      .status(401)
-      .json({ message: "Não autorizado, nenhum token fornecido." });
+    res.status(401).json({ error: "Não autorizado, sem token" });
   }
 };
 

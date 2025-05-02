@@ -1,48 +1,31 @@
-// models/ChatMessage.js
-const mongoose = require("mongoose"); // <-- Import do mongoose
-const { Schema, model } = mongoose;
+const mongoose = require("mongoose");
 
-const chatMessageSchema = new Schema(
+const reactionSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  emoji: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now },
+});
+
+const chatMessageSchema = new mongoose.Schema(
   {
-    message: {
-      type: String,
+    message: { type: String, required: true },
+    username: { type: String, required: true },
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
       required: true,
-      trim: true,
     },
-    username: {
-      type: String,
-      required: true,
-      default: "Anônimo",
-    },
-    time: String,
-    isCommand: {
-      type: Boolean,
-      default: false,
-    },
-    // Novos campos
-    edited: {
-      type: Boolean,
-      default: false,
-    },
-    deleted: {
-      type: Boolean,
-      default: false,
-    },
+    time: { type: String },
+    isCommand: { type: Boolean, default: false },
     parentMessageId: {
-      type: Schema.Types.ObjectId,
+      type: mongoose.Schema.Types.ObjectId,
       ref: "ChatMessage",
     },
-    reactions: [
-      {
-        userId: String,
-        emoji: String,
-      },
-    ],
+    edited: { type: Boolean, default: false },
+    deleted: { type: Boolean, default: false },
+    reactions: [reactionSchema],
   },
-  {
-    timestamps: true,
-    versionKey: false,
-  }
+  { timestamps: true }
 );
 
-module.exports = model("ChatMessage", chatMessageSchema);
+module.exports = mongoose.model("ChatMessage", chatMessageSchema);
