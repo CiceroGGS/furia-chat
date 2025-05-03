@@ -1,40 +1,34 @@
-// backend/server.js
 require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
+const jwt = require("jsonwebtoken");
 
+// Models
+const ChatMessage = require("./models/ChatMessage");
+
+// Routes
 const chatRoutes = require("./routes/chatRoutes");
 const liveMatchRoutes = require("./routes/liveMatchRoutes");
-const ChatMessage = require("./models/ChatMessage");
+const authRoutes = require("./routes/authRoutes");
 
 const app = express();
 const server = http.createServer(app);
 
-// CORS
+// Configurações
 app.use(
   cors({
-    origin: ["http://localhost:3000", "http://localhost:5173"],
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    origin: "http://localhost:5173",
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     credentials: true,
   })
 );
-
-// Logging simples
-app.use((req, res, next) => {
-  console.log(`${req.method} ${req.url}`);
-  next();
-});
-
 app.use(express.json());
-// Rotas REST
-app.use("/api/chat", chatRoutes);
-app.use("/api/match-live", liveMatchRoutes);
+app.use(express.urlencoded({ extended: true }));
 
-// Conexão MongoDB
+// Database
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => console.log("✅ MongoDB conectado"))
@@ -43,82 +37,164 @@ mongoose
 // Socket.IO
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:3000", "http://localhost:5173"],
+    origin: "http://localhost:5173",
     methods: ["GET", "POST"],
-  },
-  connectionStateRecovery: {
-    maxDisconnectionDuration: 2 * 60 * 1000,
-    skipMiddlewares: true,
   },
 });
 
+// Middleware de autenticação Socket.IO
+io.use((socket, next) => {
+  const token = socket.handshake.auth.token;
+  if (!token) return next(new Error("Autenticação necessária"));
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+    if (err) return next(new Error("Token inválido"));
+    socket.user = decoded;
+    next();
+  });
+});
+
+// Middleware para anexar 'io' ao 'req'
+app.use((req, res, next) => {
+  req.io = io;
+  next();
+});
+
+// Rotas
+app.use("/api/auth", authRoutes);
+app.use("/api/chat", chatRoutes); // Certifique-se de que chatRoutes está sendo usado DEPOIS do middleware acima
+app.use("/api/match-live", liveMatchRoutes);
+
+// Eventos Socket.IO
 io.on("connection", (socket) => {
-  console.log(`🔌 Novo cliente: ${socket.id}`);
+  console.log(`🔌 Novo usuário conectado: ${socket.user.username}`);
 
-  // envia últimas 50 mensagens
-  (async () => {
+  socket.on("send_message", async (messageData, callback) => {
+    console.log("Mensagem send_message recebida:", messageData);
     try {
-      const msgs = await ChatMessage.find()
-        .sort({ createdAt: -1 })
-        .limit(50)
-        .lean();
-      socket.emit("initial_messages", msgs.reverse());
-    } catch (e) {
-      console.error("Erro ao carregar iniciais:", e);
-    }
-  })();
-
-  // mensagem normal
-  socket.on("send_message", async (data) => {
-    try {
-      if (!data.message.trim()) throw new Error("Mensagem vazia");
-      let username =
-        data.username || `User${Math.random().toString(36).slice(2, 7)}`;
-      const doc = new ChatMessage({
-        message: data.message.trim(),
-        username,
-        time: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-        isCommand: data.message.startsWith("!"),
-        parentMessageId: data.parentMessageId, // ADICIONE ESTA LINHA
+      const newMessage = new ChatMessage({
+        ...messageData,
+        userId: socket.user.userId,
+        username: socket.user.username,
       });
-      const saved = await doc.save();
-      io.emit("new_message", saved.toObject());
-    } catch (err) {
-      console.error("Erro ao processar mensagem:", err);
-      socket.emit("system_message", { type: "ERROR", message: err.message });
+
+      const savedMessage = await newMessage.save();
+
+      // Popule o parentMessageId ANTES de emitir o evento
+      const populatedMessage = await ChatMessage.findById(savedMessage._id)
+        .populate({
+          path: "parentMessageId",
+          select: "username message userId", // Inclua userId aqui
+          populate: {
+            path: "userId",
+            select: "username",
+          },
+        })
+        .lean();
+
+      io.emit("new_message", populatedMessage); // Envie a mensagem populada
+      callback({ status: "success" });
+    } catch (error) {
+      console.error("Erro ao enviar mensagem:", error);
+      callback({ status: "error", message: error.message });
     }
   });
 
-  // cheer
-  socket.on("send_cheer", ({ username }) => {
-    const count = Math.floor(Math.random() * 5) + 1;
-    io.emit("cheer_update", { count, user: username || "Anônimo" });
+  socket.on("edit_message", async ({ messageId, newContent }, callback) => {
+    try {
+      const message = await ChatMessage.findById(messageId);
+      if (!message)
+        return callback({
+          status: "error",
+          message: "Mensagem não encontrada",
+        });
+
+      if (!message.userId.equals(socket.user.userId)) {
+        return callback({
+          status: "error",
+          message: "Você não pode editar essa mensagem",
+        });
+      }
+
+      message.message = newContent;
+      message.edited = true;
+      await message.save();
+
+      io.emit("message_edited", message);
+      callback({ status: "success", message });
+    } catch (error) {
+      console.error("Erro ao editar mensagem:", error);
+      callback({ status: "error", message: error.message });
+    }
+  });
+
+  socket.on("reply_message", async ({ parentMessageId, content }, callback) => {
+    try {
+      const reply = new ChatMessage({
+        message: content,
+        userId: socket.user.userId,
+        username: socket.user.username,
+        parentMessageId,
+      });
+
+      const saved = await reply.save();
+      io.emit("new_message", saved);
+      callback({ status: "success", message: saved });
+    } catch (error) {
+      console.error("Erro ao responder mensagem:", error);
+      callback({ status: "error", message: error.message });
+    }
+  });
+
+  socket.on("react_message", async ({ messageId, emoji }, callback) => {
+    try {
+      const message = await ChatMessage.findById(messageId);
+      if (!message)
+        return callback({
+          status: "error",
+          message: "Mensagem não encontrada",
+        });
+
+      const existingReactionIndex = message.reactions.findIndex(
+        (r) => r.userId.toString() === socket.user.userId && r.emoji === emoji
+      );
+
+      if (existingReactionIndex >= 0) {
+        message.reactions.splice(existingReactionIndex, 1);
+      } else {
+        message.reactions.push({ userId: socket.user.userId, emoji });
+      }
+
+      await message.save();
+      io.emit("message_reacted", message);
+      callback({ status: "success", message });
+    } catch (error) {
+      console.error("Erro ao reagir à mensagem:", error);
+      callback({ status: "error", message: error.message });
+    }
   });
 
   socket.on("disconnect", () => {
-    console.log(`⚠️ Desconectado: ${socket.id}`);
+    console.log(`❌ Usuário desconectado: ${socket.user.username}`);
   });
 });
 
-// health-check
+// Rotas
+app.use("/api/auth", authRoutes);
+app.use("/api/chat", chatRoutes);
+app.use("/api/match-live", liveMatchRoutes);
+
+// Health Check
 app.get("/health", (req, res) => {
   res.json({
-    status: "healthy",
-    mongo: mongoose.connection.readyState === 1 ? "connected" : "disconnected",
-    websocket: io.engine.clientsCount,
+    status: "online",
+    mongo: mongoose.connection.readyState === 1,
+    usersConnected: io.engine.clientsCount,
   });
 });
 
-// erro global
-app.use((err, req, res, next) => {
-  console.error("❌ Erro:", err.stack);
-  res.status(500).json({ error: "Algo deu errado!" });
-});
-
+// Iniciar servidor
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
-  console.log(`🚀 Server rodando em http://localhost:${PORT}`);
+  console.log(`🚀 Servidor rodando na porta ${PORT}`);
 });

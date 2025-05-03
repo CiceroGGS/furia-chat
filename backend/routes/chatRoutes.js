@@ -1,97 +1,161 @@
+// backend/routes/chatRoutes.js
 const express = require("express");
-const ChatMessage = require("../models/ChatMessage");
 const router = express.Router();
+const authenticateToken = require("../middleware/auth");
+const ChatMessage = require("../models/ChatMessage");
 
-router.get("/", async (req, res) => {
+// Middleware para verificar dono da mensagem
+const checkMessageOwner = async (req, res, next) => {
   try {
-    const messages = await ChatMessage.find()
-      .sort({ createdAt: -1 })
-      .limit(50)
-      .lean();
-    res.json(messages.reverse());
-  } catch (error) {
-    res.status(500).json({
-      error: "Erro ao carregar mensagens",
-      details: error.message,
-    });
-  }
-});
-
-router.post("/", async (req, res) => {
-  try {
-    const messageData = {
-      ...req.body,
-      time: new Date().toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-      isCommand: req.body.message.startsWith("!"),
-    };
-
-    const message = new ChatMessage(messageData);
-    const savedMessage = await message.save();
-    res.status(201).json(savedMessage);
-  } catch (error) {
-    res.status(400).json({
-      error: "Erro ao salvar mensagem",
-      details: error.message,
-    });
-  }
-});
-
-router.patch("/:id", async (req, res) => {
-  try {
-    const message = await ChatMessage.findByIdAndUpdate(
-      req.params.id,
-      {
-        message: req.body.content,
-        edited: true,
-      },
-      { new: true }
-    );
-
-    if (!message)
+    const message = await ChatMessage.findById(req.params.id);
+    if (!message) {
+      console.log(
+        "checkMessageOwner: Mensagem não encontrada para ID:",
+        req.params.id
+      );
       return res.status(404).json({ error: "Mensagem não encontrada" });
-    res.json(message);
+    }
+    if (message.userId.toString() !== req.user.userId) {
+      console.log(
+        "checkMessageOwner: Ação não autorizada para usuário:",
+        req.user.userId,
+        "e mensagem de:",
+        message.userId
+      );
+      return res.status(403).json({ error: "Ação não autorizada" });
+    }
+    req.message = message;
+    next();
   } catch (error) {
-    res.status(500).json({ error: "Erro ao editar mensagem" });
+    console.error("checkMessageOwner: Erro:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Buscar mensagens antigas
+router.get("/", authenticateToken, async (req, res) => {
+  try {
+    const messages = await ChatMessage.getRecentMessages();
+    console.log(
+      "Buscar mensagens antigas: Sucesso, número de mensagens:",
+      messages.length
+    );
+    res.json(messages.reverse()); // Ordena do mais antigo para o mais novo
+  } catch (error) {
+    console.error("Buscar mensagens antigas: Erro:", error);
+    res.status(500).json({ error: error.message });
   }
 });
 
-router.delete("/:id", async (req, res) => {
+// Editar mensagem
+router.patch("/:id", authenticateToken, checkMessageOwner, async (req, res) => {
   try {
-    const message = await ChatMessage.findByIdAndUpdate(
+    const { message: newContent } = req.body;
+    console.log(
+      "Editar mensagem: Tentando editar ID:",
       req.params.id,
-      { deleted: true },
-      { new: true }
+      "para:",
+      newContent
     );
+    const updatedMessage = await ChatMessage.findByIdAndUpdate(
+      req.params.id,
+      { message: newContent, edited: true },
+      { new: true }
+    ).populate("userId", "username");
 
-    if (!message)
+    if (updatedMessage) {
+      console.log(
+        "Editar mensagem: Sucesso, mensagem atualizada:",
+        updatedMessage
+      );
+      req.io.emit("update_message", updatedMessage);
+      res.json(updatedMessage);
+    } else {
+      console.log(
+        "Editar mensagem: Falha ao atualizar mensagem com ID:",
+        req.params.id
+      );
+      res.status(404).json({ error: "Mensagem não encontrada para edição" });
+    }
+  } catch (error) {
+    console.error("Editar mensagem: Erro:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Deletar mensagem
+router.delete(
+  "/:id",
+  authenticateToken,
+  checkMessageOwner,
+  async (req, res) => {
+    try {
+      console.log("Deletar mensagem: Tentando deletar ID:", req.params.id);
+      const deletedMessage = await ChatMessage.findByIdAndDelete(req.params.id);
+      if (deletedMessage) {
+        console.log(
+          "Deletar mensagem: Sucesso, mensagem deletada com ID:",
+          req.params.id
+        );
+        req.io.emit("delete_message", { _id: req.params.id });
+        res.json({ success: true });
+      } else {
+        console.log(
+          "Deletar mensagem: Falha ao encontrar mensagem para deletar com ID:",
+          req.params.id
+        );
+        res.status(404).json({ error: "Mensagem não encontrada para deletar" });
+      }
+    } catch (error) {
+      console.error("Deletar mensagem: Erro:", error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
+
+// Adicionar reação
+router.post("/:id/react", authenticateToken, async (req, res) => {
+  try {
+    const { emoji } = req.body;
+    console.log(
+      "Adicionar reação: Tentando adicionar:",
+      emoji,
+      "para ID:",
+      req.params.id,
+      "por usuário:",
+      req.user.userId
+    );
+    const message = await ChatMessage.findById(req.params.id);
+
+    if (!message) {
+      console.log(
+        "Adicionar reação: Mensagem não encontrada para ID:",
+        req.params.id
+      );
       return res.status(404).json({ error: "Mensagem não encontrada" });
-    res.json(message);
-  } catch (error) {
-    res.status(500).json({ error: "Erro ao excluir mensagem" });
-  }
-});
+    }
 
-router.post("/:id/react", async (req, res) => {
-  try {
-    const message = await ChatMessage.findByIdAndUpdate(
-      req.params.id,
-      {
-        $push: {
-          reactions: {
-            userId: req.body.userId,
-            emoji: req.body.emoji,
-          },
-        },
-      },
-      { new: true }
+    // Remove reação existente do mesmo usuário
+    message.reactions = message.reactions.filter(
+      (r) => r.userId.toString() !== req.user.userId
     );
 
-    res.json(message.reactions);
+    // Adiciona nova reação
+    message.reactions.push({
+      userId: req.user.userId,
+      emoji,
+    });
+
+    const updatedMessage = await message.save();
+    console.log(
+      "Adicionar reação: Sucesso, reação adicionada:",
+      updatedMessage.reactions
+    );
+    req.io.emit("update_message", updatedMessage);
+    res.json(updatedMessage);
   } catch (error) {
-    res.status(500).json({ error: "Erro ao adicionar reação" });
+    console.error("Adicionar reação: Erro:", error);
+    res.status(500).json({ error: error.message });
   }
 });
 

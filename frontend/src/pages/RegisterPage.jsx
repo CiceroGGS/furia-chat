@@ -1,6 +1,36 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { AuthForm } from "../components/AuthForm";
+import styled from "styled-components";
+
+const AuthPageContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  width: 100%;
+  padding: 20px;
+  background: linear-gradient(135deg, #0a0a0a, #1a1a1a);
+`;
+
+const AuthLinkText = styled.p`
+  margin-top: 1.5rem;
+  color: #b0b0b0;
+  text-align: center;
+`;
+
+const AuthLink = styled(Link)`
+  color: #ff5500;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.3s ease;
+
+  &:hover {
+    color: #ff884d;
+    text-decoration: underline;
+  }
+`;
 
 export const RegisterPage = () => {
   const [error, setError] = useState("");
@@ -26,14 +56,11 @@ export const RegisterPage = () => {
   };
 
   return (
-    <div>
+    <AuthPageContainer>
       <AuthForm type="register" onSubmit={handleRegister} error={error} />
-      <p style={{ textAlign: "center", color: "#aaa" }}>
-        Já tem conta?{" "}
-        <a href="/login" style={{ color: "#ff5500" }}>
-          Faça login
-        </a>
-      </p>
-    </div>
+      <AuthLinkText>
+        Já tem conta? <AuthLink to="/login">Faça login</AuthLink>
+      </AuthLinkText>
+    </AuthPageContainer>
   );
 };

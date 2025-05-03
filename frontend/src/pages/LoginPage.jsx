@@ -2,6 +2,36 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { AuthForm } from "../components/AuthForm";
+import styled from "styled-components";
+
+const AuthPageContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  width: 100%;
+  padding: 20px;
+  background: linear-gradient(135deg, #0a0a0a, #1a1a1a);
+`;
+
+const AuthLinkText = styled.p`
+  margin-top: 1.5rem;
+  color: #b0b0b0;
+  text-align: center;
+`;
+
+const AuthLink = styled(Link)`
+  color: #ff5500;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.3s ease;
+
+  &:hover {
+    color: #ff884d;
+    text-decoration: underline;
+  }
+`;
 
 export const LoginPage = () => {
   const [error, setError] = useState("");
@@ -39,19 +69,16 @@ export const LoginPage = () => {
   };
 
   return (
-    <div className="auth-page-container">
+    <AuthPageContainer>
       <AuthForm
         type="login"
         onSubmit={handleLogin}
         error={error}
         loading={isLoading}
       />
-      <p className="auth-link-text">
-        Não tem conta?{" "}
-        <Link to="/register" className="auth-link">
-          Registre-se
-        </Link>
-      </p>
-    </div>
+      <AuthLinkText>
+        Não tem conta? <AuthLink to="/register">Registre-se</AuthLink>
+      </AuthLinkText>
+    </AuthPageContainer>
   );
 };
