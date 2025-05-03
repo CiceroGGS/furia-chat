@@ -25,27 +25,31 @@ const MessageContent = styled.div`
   font-style: ${(p) => (p.$deleted ? "italic" : "normal")};
 `;
 
-const Actions = styled.div`
+const MessageActions = styled.div`
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
   display: flex;
-  gap: 5px;
-  margin-top: 5px;
-`;
+  gap: 0.3rem;
+  opacity: 0;
+  transition: opacity 0.2s;
 
   &:hover {
     opacity: 1;
   }
 `;
 
-const ReplyButton = styled.button`
-  background: none;
+const ActionButton = styled.button`
+  background: rgba(255, 85, 0, 0.1);
   border: none;
-  color: #2196f3;
+  color: #666;
   cursor: pointer;
   padding: 0.3rem;
   border-radius: 4px;
 
   &:hover {
-    background-color: #e0f7fa;
+    background: rgba(255, 85, 0, 0.2);
+    color: #ff5500;
   }
 `;
 

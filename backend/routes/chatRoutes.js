@@ -159,5 +159,4 @@ router.post("/:id/react", authenticateToken, async (req, res) => {
   }
 });
 
-  return router;
-};
+module.exports = router;

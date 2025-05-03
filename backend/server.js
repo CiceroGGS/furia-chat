@@ -30,14 +30,11 @@ app.use(express.urlencoded({ extended: true }));
 
 // Database
 mongoose
-  .connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
+  .connect(process.env.MONGO_URI)
   .then(() => console.log("✅ MongoDB conectado"))
   .catch((err) => console.error("❌ Erro MongoDB:", err));
 
-// Configuração do Socket.IO
+// Socket.IO
 const io = new Server(server, {
   cors: {
     origin: "http://localhost:5173",
@@ -176,7 +173,6 @@ io.on("connection", (socket) => {
       callback({ status: "error", message: error.message });
     }
   });
-});
 
   socket.on("disconnect", () => {
     console.log(`❌ Usuário desconectado: ${socket.user.username}`);
