@@ -1,114 +1,28 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
+import PropTypes from "prop-types";
 import styled from "styled-components";
 
-const Message = ({ message, currentUser, onReply, onEdit, onReact }) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedContent, setEditedContent] = useState(message.message);
-  const isCurrentUser = message.username === currentUser;
-
-  const handleSaveEdit = () => {
-    onEdit(message._id, editedContent);
-    setIsEditing(false);
-  };
-
-  return (
-    <MessageContainer $isCurrentUser={isCurrentUser}>
-      {message.parentMessageId && (
-        <ReplyPreview>
-          ↪ {message.parentMessagePreview?.message?.substring(0, 30)}...
-        </ReplyPreview>
-      )}
-      <MessageInfo>
-        <Username $isCurrentUser={isCurrentUser}>{message.username}:</Username>
-        {isEditing ? (
-          <EditInput
-            type="text"
-            value={editedContent}
-            onChange={(e) => setEditedContent(e.target.value)}
-          />
-        ) : (
-          <Content $isCurrentUser={isCurrentUser}>{message.message}</Content>
-        )}
-        <Timestamp>{message.time}</Timestamp>
-      </MessageInfo>
-      <Actions>
-        {!isEditing && (
-          <>
-            <ReplyButton onClick={() => onReply(message._id, message)}>
-              {" "}
-              {/* Garanta que está chamando corretamente */}
-              Responder
-            </ReplyButton>
-            {isCurrentUser && (
-              <EditButton
-                onClick={() => {
-                  setIsEditing(true);
-                  setEditedContent(message.message);
-                }}
-              >
-                Editar
-              </EditButton>
-            )}
-          </>
-        )}
-        {isEditing && (
-          <>
-            <SaveButton onClick={handleSaveEdit}>Salvar</SaveButton>
-            <CancelButton onClick={() => setIsEditing(false)}>
-              Cancelar
-            </CancelButton>
-          </>
-        )}
-        <ReactionButton onClick={() => onReact(message._id, "👍")}>
-          👍
-        </ReactionButton>
-        <ReactionButton onClick={() => onReact(message._id, "❤️")}>
-          ❤️
-        </ReactionButton>
-      </Actions>
-    </MessageContainer>
-  );
-};
-
 const MessageContainer = styled.div`
-  background-color: ${(props) =>
-    props.$isCurrentUser ? "#dcf8c6" : "#f0f0f0"};
-  border-radius: 10px;
-  padding: 8px 12px;
-  margin-bottom: 8px;
-  word-break: break-word;
-  align-self: ${(props) => (props.$isCurrentUser ? "flex-end" : "flex-start")};
-  max-width: 80%;
+  position: relative;
+  background: ${(p) => (p.$isUser ? "#2a2a2a" : "#1a1a1a")};
+  padding: 1rem;
+  border-radius: 8px;
+  margin: 0.5rem 0;
+  border-left: 3px solid ${(p) => (p.$isUser ? "#ff5500" : "#333")};
+  opacity: ${(p) => (p.$deleted ? 0.5 : 1)};
 `;
 
-const MessageInfo = styled.div`
+const MessageHeader = styled.div`
   display: flex;
-  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  color: ${(p) => (p.$isReply ? "#ffaa00" : "#ff5500")};
 `;
 
-const Username = styled.span`
-  font-weight: bold;
-  margin-right: 5px;
-  color: ${(props) => (props.$isCurrentUser ? "#4caf50" : "#2196f3")};
-`;
-
-const Content = styled.p`
-  margin: 0;
-  color: #333;
-`;
-
-const EditInput = styled.input`
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  margin-right: 5px;
-  flex-grow: 1;
-`;
-
-const Timestamp = styled.span`
-  font-size: 0.7rem;
-  color: #777;
-  margin-left: 10px;
+const MessageContent = styled.div`
+  word-break: break-word;
+  color: ${(p) => (p.$deleted ? "#666" : "#fff")};
+  font-style: ${(p) => (p.$deleted ? "italic" : "normal")};
 `;
 
 const Actions = styled.div`
@@ -117,10 +31,9 @@ const Actions = styled.div`
   margin-top: 5px;
 `;
 
-const ReplyPreview = styled.div`
-  font-size: 0.8rem;
-  color: #777;
-  margin-bottom: 3px;
+  &:hover {
+    opacity: 1;
+  }
 `;
 
 const ReplyButton = styled.button`
@@ -128,53 +41,253 @@ const ReplyButton = styled.button`
   border: none;
   color: #2196f3;
   cursor: pointer;
-  font-size: 0.8rem;
-  padding: 3px 6px;
-  border-radius: 5px;
+  padding: 0.3rem;
+  border-radius: 4px;
+
   &:hover {
     background-color: #e0f7fa;
-  }
-`;
-
-const EditButton = styled(ReplyButton)`
-  color: #f44336;
-  &:hover {
-    background-color: #ffebee;
-  }
-`;
-
-const SaveButton = styled.button`
-  background-color: #4caf50;
-  color: white;
-  border: none;
-  padding: 6px 10px;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 0.8rem;
-  &:hover {
-    background-color: #45a049;
-  }
-`;
-
-const CancelButton = styled.button`
-  background-color: #f44336;
-  color: white;
-  border: none;
-  padding: 6px 10px;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 0.8rem;
-  &:hover {
-    background-color: #d32f2f;
   }
 `;
 
 const ReactionButton = styled.button`
   background: none;
   border: none;
+  color: #fff;
   cursor: pointer;
-  font-size: 0.9rem;
-  padding: 3px;
+  font-size: 1rem;
+  margin-right: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+
+  &:hover {
+    opacity: 0.7;
+  }
 `;
+
+const ReplyIndicator = styled.div`
+  background-color: rgba(255, 165, 0, 0.1);
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  color: #ffaa00;
+  border-left: 3px solid #ffaa00;
+`;
+
+const Message = ({
+  message,
+  currentUser,
+  onEdit,
+  onDelete,
+  onReact,
+  onReply,
+}) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedContent, setEditedContent] = useState(message.message);
+  const [showReactions, setShowReactions] = useState(false);
+  const reactionSelectorRef = useRef(null);
+
+  const commonEmojis = ["🔥", "❤️", "🚀", "👏", "💯", "😂", "😮", "🎉"];
+
+  const handleSaveEdit = () => {
+    if (typeof onEdit === "function") {
+      onEdit(message._id, editedContent);
+      setIsEditing(false);
+    }
+  };
+
+  const handleReactionClick = (emoji) => {
+    if (typeof onReact === "function") {
+      onReact(message._id, emoji);
+      setShowReactions(false);
+    }
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        reactionSelectorRef.current &&
+        !reactionSelectorRef.current.contains(event.target)
+      ) {
+        setShowReactions(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const renderReactions = () => {
+    const reactionCounts = {};
+    message.reactions.forEach((r) => {
+      reactionCounts[r.emoji] = (reactionCounts[r.emoji] || 0) + 1;
+    });
+
+    return Object.entries(reactionCounts).map(([emoji, count]) => (
+      <ReactionButton
+        key={emoji}
+        onClick={() => onReact(message._id, emoji)}
+        aria-label={`Reagir com ${emoji}`}
+      >
+        {emoji}
+        <span>{count}</span>
+      </ReactionButton>
+    ));
+  };
+
+  return (
+    <MessageContainer
+      $isUser={message.username === currentUser}
+      $deleted={message.deleted}
+    >
+      <MessageHeader $isReply={Boolean(message.parentMessageId)}>
+        <div>
+          <span>{message.username}</span>
+          <span
+            style={{ marginLeft: "0.5rem", color: "#666", fontSize: "0.8rem" }}
+          >
+            {new Date(message.createdAt).toLocaleTimeString()}
+            {message.edited && " (editado)"}
+          </span>
+        </div>
+
+        {!message.deleted && (
+          <MessageActions>
+            <ActionButton
+              onClick={() =>
+                typeof onReply === "function" && onReply(message._id)
+              }
+            >
+              ↩
+            </ActionButton>
+            {message.username === currentUser && (
+              <>
+                <ActionButton onClick={() => setIsEditing(!isEditing)}>
+                  ✏️
+                </ActionButton>
+                <ActionButton
+                  onClick={() =>
+                    typeof onDelete === "function" && onDelete(message._id)
+                  }
+                >
+                  🗑️
+                </ActionButton>
+              </>
+            )}
+            <ActionButton onClick={() => setShowReactions(!showReactions)}>
+              😊
+            </ActionButton>
+          </MessageActions>
+        )}
+      </MessageHeader>
+      {message.parentMessageId && (
+        <ReplyIndicator>
+          Respondendo a: <b>{message.parentMessageId.username}</b>
+          <br />
+          <div
+            style={{
+              marginLeft: "10px",
+              fontStyle: "italic",
+              color: "#888",
+              fontSize: "0.9em",
+            }}
+          >
+            "{message.parentMessageId.message}"
+          </div>
+        </ReplyIndicator>
+      )}
+
+      {message.deleted ? (
+        <MessageContent $deleted>Mensagem excluída</MessageContent>
+      ) : isEditing ? (
+        <>
+          <textarea
+            value={editedContent}
+            onChange={(e) => setEditedContent(e.target.value)}
+            style={{
+              width: "100%",
+              minHeight: "60px",
+              background: "#333",
+              color: "white",
+            }}
+          />
+          <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>
+            <ActionButton onClick={handleSaveEdit}>Salvar</ActionButton>
+            <ActionButton onClick={() => setIsEditing(false)}>
+              Cancelar
+            </ActionButton>
+          </div>
+        </>
+      ) : (
+        <MessageContent>
+          {message.message.split("\n").map((line, i) => (
+            <p key={i}>{line}</p>
+          ))}
+        </MessageContent>
+      )}
+      {renderReactions()}
+
+      {showReactions && (
+        <div
+          ref={reactionSelectorRef}
+          style={{
+            position: "absolute",
+            bottom: "100%",
+            right: 0,
+            background: "#333",
+            padding: "0.5rem",
+            borderRadius: "8px",
+            display: "flex",
+            gap: "0.5rem",
+            zIndex: 10,
+          }}
+        >
+          {commonEmojis.map((emoji) => (
+            <button
+              key={emoji}
+              onClick={() => handleReactionClick(emoji)}
+              style={{
+                background: "none",
+                border: "none",
+                fontSize: "1.2rem",
+                cursor: "pointer",
+              }}
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+      )}
+    </MessageContainer>
+  );
+};
+
+Message.propTypes = {
+  message: PropTypes.shape({
+    _id: PropTypes.string.isRequired,
+    username: PropTypes.string.isRequired,
+    message: PropTypes.string.isRequired,
+    createdAt: PropTypes.string,
+    edited: PropTypes.bool,
+    deleted: PropTypes.bool,
+    parentMessageId: PropTypes.shape({
+      username: PropTypes.string.isRequired,
+      message: PropTypes.string.isRequired,
+      createdAt: PropTypes.string,
+    }),
+    reactions: PropTypes.arrayOf(
+      PropTypes.shape({
+        userId: PropTypes.string.isRequired,
+        emoji: PropTypes.string.isRequired,
+      })
+    ),
+  }).isRequired,
+  currentUser: PropTypes.string,
+  onEdit: PropTypes.func.isRequired,
+  onDelete: PropTypes.func.isRequired,
+  onReact: PropTypes.func.isRequired,
+  onReply: PropTypes.func.isRequired,
+};
 
 export default Message;

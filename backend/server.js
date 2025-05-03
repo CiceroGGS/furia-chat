@@ -4,30 +4,31 @@ const mongoose = require("mongoose");
 const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
-const authRoutes = require("./routes/auth");
-const chatRoutes = require("./routes/chatRoutes"); // Importando a função que retorna as rotas
 const jwt = require("jsonwebtoken");
-const User = require("./models/user");
-const ChatMessage = require("./models/ChatMessage"); // Importe o modelo ChatMessage
+
+// Models
+const ChatMessage = require("./models/ChatMessage");
+
+// Routes
+const chatRoutes = require("./routes/chatRoutes");
+const liveMatchRoutes = require("./routes/liveMatchRoutes");
+const authRoutes = require("./routes/authRoutes");
 
 const app = express();
 const server = http.createServer(app);
 
-// Configurações do CORS
-const corsOptions = {
-  origin: "http://localhost:5173",
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-  credentials: true,
-  allowedHeaders: ["Content-Type", "Authorization"],
-};
-app.use(cors(corsOptions));
-
+// Configurações
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    credentials: true,
+  })
+);
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Rotas de autenticação
-app.use("/api/auth", authRoutes);
-
-// Conexão com MongoDB
+// Database
 mongoose
   .connect(process.env.MONGO_URI, {
     useNewUrlParser: true,
@@ -41,92 +42,162 @@ const io = new Server(server, {
   cors: {
     origin: "http://localhost:5173",
     methods: ["GET", "POST"],
-    credentials: true,
   },
 });
 
-// Autenticação do Socket.IO
-io.use(async (socket, next) => {
+// Middleware de autenticação Socket.IO
+io.use((socket, next) => {
   const token = socket.handshake.auth.token;
-  if (!token) return next(new Error("Token não fornecido"));
+  if (!token) return next(new Error("Autenticação necessária"));
 
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.userId);
-    if (!user) return next(new Error("Usuário não encontrado"));
-    socket.user = user;
+  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+    if (err) return next(new Error("Token inválido"));
+    socket.user = decoded;
     next();
-  } catch (err) {
-    next(new Error("Token inválido"));
-  }
+  });
 });
 
-// Lógica do Socket.IO
-io.on("connection", (socket) => {
-  console.log(`🔌 Novo cliente conectado: ${socket.user.username}`);
+// Middleware para anexar 'io' ao 'req'
+app.use((req, res, next) => {
+  req.io = io;
+  next();
+});
 
-  socket.on("edit_message", async (data) => {
-    const { id, content } = data;
+// Rotas
+app.use("/api/auth", authRoutes);
+app.use("/api/chat", chatRoutes); // Certifique-se de que chatRoutes está sendo usado DEPOIS do middleware acima
+app.use("/api/match-live", liveMatchRoutes);
+
+// Eventos Socket.IO
+io.on("connection", (socket) => {
+  console.log(`🔌 Novo usuário conectado: ${socket.user.username}`);
+
+  socket.on("send_message", async (messageData, callback) => {
+    console.log("Mensagem send_message recebida:", messageData);
     try {
-      const token = socket.handshake.auth.token;
-      const response = await fetch(`http://localhost:5000/api/chat/${id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ content }),
+      const newMessage = new ChatMessage({
+        ...messageData,
+        userId: socket.user.userId,
+        username: socket.user.username,
       });
 
-      if (!response.ok) {
-        console.error(
-          "Erro ao editar mensagem no servidor via HTTP:",
-          response.statusText
-        );
-        return;
-      }
+      const savedMessage = await newMessage.save();
 
-      // A resposta da rota PATCH (a mensagem atualizada) será emitida pelo backend.
-      // Não precisamos emitir novamente aqui.
+      // Popule o parentMessageId ANTES de emitir o evento
+      const populatedMessage = await ChatMessage.findById(savedMessage._id)
+        .populate({
+          path: "parentMessageId",
+          select: "username message userId", // Inclua userId aqui
+          populate: {
+            path: "userId",
+            select: "username",
+          },
+        })
+        .lean();
+
+      io.emit("new_message", populatedMessage); // Envie a mensagem populada
+      callback({ status: "success" });
     } catch (error) {
-      console.error("Erro ao processar edição de mensagem:", error);
+      console.error("Erro ao enviar mensagem:", error);
+      callback({ status: "error", message: error.message });
     }
   });
 
-  socket.on("send_cheer", () => {
-    io.emit("cheer_update", {
-      user: socket.user.username,
-      count: Math.floor(Math.random() * 5) + 1,
-    });
+  socket.on("edit_message", async ({ messageId, newContent }, callback) => {
+    try {
+      const message = await ChatMessage.findById(messageId);
+      if (!message)
+        return callback({
+          status: "error",
+          message: "Mensagem não encontrada",
+        });
+
+      if (!message.userId.equals(socket.user.userId)) {
+        return callback({
+          status: "error",
+          message: "Você não pode editar essa mensagem",
+        });
+      }
+
+      message.message = newContent;
+      message.edited = true;
+      await message.save();
+
+      io.emit("message_edited", message);
+      callback({ status: "success", message });
+    } catch (error) {
+      console.error("Erro ao editar mensagem:", error);
+      callback({ status: "error", message: error.message });
+    }
+  });
+
+  socket.on("reply_message", async ({ parentMessageId, content }, callback) => {
+    try {
+      const reply = new ChatMessage({
+        message: content,
+        userId: socket.user.userId,
+        username: socket.user.username,
+        parentMessageId,
+      });
+
+      const saved = await reply.save();
+      io.emit("new_message", saved);
+      callback({ status: "success", message: saved });
+    } catch (error) {
+      console.error("Erro ao responder mensagem:", error);
+      callback({ status: "error", message: error.message });
+    }
+  });
+
+  socket.on("react_message", async ({ messageId, emoji }, callback) => {
+    try {
+      const message = await ChatMessage.findById(messageId);
+      if (!message)
+        return callback({
+          status: "error",
+          message: "Mensagem não encontrada",
+        });
+
+      const existingReactionIndex = message.reactions.findIndex(
+        (r) => r.userId.toString() === socket.user.userId && r.emoji === emoji
+      );
+
+      if (existingReactionIndex >= 0) {
+        message.reactions.splice(existingReactionIndex, 1);
+      } else {
+        message.reactions.push({ userId: socket.user.userId, emoji });
+      }
+
+      await message.save();
+      io.emit("message_reacted", message);
+      callback({ status: "success", message });
+    } catch (error) {
+      console.error("Erro ao reagir à mensagem:", error);
+      callback({ status: "error", message: error.message });
+    }
   });
 });
 
-// Rotas do chat (agora chamando a função e passando 'io')
-const chatRouter = chatRoutes(io);
-app.use("/api/chat", chatRouter);
-
-// Rota para buscar mensagens iniciais
-app.get("/api/chat", async (req, res) => {
-  try {
-    const messages = await ChatMessage.find()
-      .sort({ createdAt: 1 })
-      .populate("userId", "username");
-    res.status(200).json(messages);
-  } catch (error) {
-    console.error("Erro ao buscar mensagens:", error);
-    res.status(500).json({ message: "Erro ao buscar mensagens", error });
-  }
+  socket.on("disconnect", () => {
+    console.log(`❌ Usuário desconectado: ${socket.user.username}`);
+  });
 });
 
-// Rota de saúde
+// Rotas
+app.use("/api/auth", authRoutes);
+app.use("/api/chat", chatRoutes);
+app.use("/api/match-live", liveMatchRoutes);
+
+// Health Check
 app.get("/health", (req, res) => {
   res.json({
     status: "online",
     mongo: mongoose.connection.readyState === 1,
-    sockets: io.engine.clientsCount,
+    usersConnected: io.engine.clientsCount,
   });
 });
 
+// Iniciar servidor
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);

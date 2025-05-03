@@ -1,182 +1,278 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { io } from "socket.io-client";
+import { useAuth } from "../contexts/AuthContext";
 import Message from "../components/Message";
 import LiveMatchPanel from "../components/LiveMatchPanel";
-import useSocket from "../hooks/useSocket";
 import {
   ChatContainer,
   Header,
-  CheerBanner,
   MessageList,
   InputContainer,
   MessageInput,
   SendButton,
-  CheerButton,
+  ReplyIndicator,
+  CloseButton,
 } from "../styles/ChatStyle";
 
-function ChatPage() {
+export default function ChatPage() {
+  const { user, logout } = useAuth();
   const [messages, setMessages] = useState([]);
-  const [newMsg, setNewMsg] = useState("");
-  const [cheerCount, setCheerCount] = useState(0);
-  const [lastCheerUser, setLastCheerUser] = useState("");
+  const [newMessage, setNewMessage] = useState("");
   const [replyingTo, setReplyingTo] = useState(null);
-  const endRef = useRef(null);
-  const authToken = localStorage.getItem("authToken");
-  const localUsername = localStorage.getItem("username");
+  const [isLoading, setIsLoading] = useState(false);
+  const socket = useRef(null);
   const navigate = useNavigate();
-  const socket = useSocket(authToken);
+  const messagesEndRef = useRef(null);
 
-  // Comandos disponíveis
-  const commands = {
-    help: () => addSystemMessage("Comandos disponíveis: !help, !cheer, !furia"),
-    cheer: () => socket?.emit("send_cheer"),
-    furia: () => addSystemMessage("⚡ FURIA Esports - Fundada em 2017"),
-  };
-
-  const addSystemMessage = (text) => {
-    const systemMessage = {
-      _id: Date.now().toString(),
-      username: "Sistema",
-      message: text,
-      time: new Date().toLocaleTimeString(),
-      isSystem: true,
-    };
-    setMessages((prev) => [...prev, systemMessage]);
-  };
+  // Auto-scroll para novas mensagens
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   // Carregar mensagens iniciais
+  const loadMessages = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const token = localStorage.getItem("authToken");
+      const response = await fetch("http://localhost:5000/api/chat", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) throw new Error("Failed to load messages");
+      const data = await response.json();
+      setMessages(data);
+    } catch (error) {
+      console.error("Error loading messages:", error);
+      alert("Failed to load messages. Please refresh the page.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Conexão WebSocket
   useEffect(() => {
-    if (!authToken) {
+    if (!user) {
       navigate("/login");
       return;
     }
 
-    const loadMessages = async () => {
-      try {
-        const response = await fetch("http://localhost:5000/api/chat", {
-          headers: {
-            Authorization: `Bearer ${authToken}`,
-          },
-        });
-        const data = await response.json();
-        setMessages(data);
-      } catch (error) {
-        console.error("Erro ao carregar mensagens:", error);
-      }
-    };
-
     loadMessages();
-  }, [authToken, navigate]);
 
-  // Configurar listeners do socket
-  useEffect(() => {
-    if (!socket) return;
-
-    socket.on("new_message", (newMessage) => {
-      setMessages((prev) => [...prev, newMessage]);
+    const token = localStorage.getItem("authToken");
+    socket.current = io("http://localhost:5000", {
+      auth: { token },
+      transports: ["websocket"],
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 20000,
     });
 
-    socket.on("cheer_update", (data) => {
-      setCheerCount(data.count);
-      setLastCheerUser(data.user);
-      addSystemMessage(`🎉 ${data.user} fez um grito de guerra!`);
+    socket.current.on("connect", () => {
+      console.log("Connected to WebSocket");
+    });
+
+    socket.current.on("new_message", (message) => {
+      setMessages((prev) => [...prev, message]);
+    });
+
+    socket.current.on("update_message", (updatedMessage) => {
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg._id === updatedMessage._id ? updatedMessage : msg
+        )
+      );
+    });
+
+    socket.current.on("delete_message", ({ _id }) => {
+      setMessages((prev) => prev.filter((msg) => msg._id !== _id));
+    });
+
+    socket.current.on("connect_error", (err) => {
+      console.error("Connection error:", err);
+      if (err.message === "invalid token") {
+        logout();
+        navigate("/login");
+      }
+      setTimeout(() => socket.current.connect(), 1000);
     });
 
     return () => {
-      socket.off("new_message");
-      socket.off("cheer_update");
-    };
-  }, [socket]);
-
-  // Auto-scroll
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  const handleSend = useCallback(
-    (e) => {
-      e.preventDefault();
-      if (!newMsg.trim()) return;
-
-      if (newMsg.startsWith("!")) {
-        const command = newMsg.split(" ")[0].substring(1).toLowerCase();
-        commands[command]?.();
-      } else {
-        socket?.emit("send_message", {
-          message: newMsg,
-          parentMessageId: replyingTo,
-        });
+      if (socket.current) {
+        socket.current.off("new_message");
+        socket.current.off("update_message");
+        socket.current.off("delete_message");
+        socket.current.disconnect();
       }
+    };
+  }, [user, navigate, logout, loadMessages]);
 
-      setNewMsg("");
-      setReplyingTo(null);
-    },
-    [newMsg, replyingTo, socket, commands]
-  );
+  const handleEditMessage = async (messageId, newContent) => {
+    try {
+      const token = localStorage.getItem("authToken");
+      const response = await fetch(
+        `http://localhost:5000/api/chat/${messageId}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ message: newContent }),
+        }
+      );
 
-  const handleReply = useCallback(
-    (messageId) => {
-      const messageToReply = messages.find((m) => m._id === messageId);
-      setReplyingTo(messageId);
-      setNewMsg(`@${messageToReply.username} `);
-    },
-    [messages]
-  );
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to edit message");
+      }
+    } catch (error) {
+      console.error("Edit error:", error);
+      alert(error.message);
+      throw error;
+    }
+  };
+
+  const handleDeleteMessage = async (messageId) => {
+    try {
+      const token = localStorage.getItem("authToken");
+      const response = await fetch(
+        `http://localhost:5000/api/chat/${messageId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to delete message");
+      }
+    } catch (error) {
+      console.error("Delete error:", error);
+      alert(error.message);
+      throw error;
+    }
+  };
+
+  const handleReaction = async (messageId, emoji) => {
+    try {
+      const token = localStorage.getItem("authToken");
+      const response = await fetch(
+        `http://localhost:5000/api/chat/${messageId}/react`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ emoji }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to add reaction");
+      }
+    } catch (error) {
+      console.error("Reaction error:", error);
+      alert(error.message);
+      throw error;
+    }
+  };
+
+  const handleReplyToMessage = (messageId) => {
+    const messageToReply = messages.find((msg) => msg._id === messageId);
+    setReplyingTo(messageToReply || null);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!newMessage.trim()) return;
+
+    const messageData = {
+      message: newMessage.trim(),
+      ...(replyingTo && { parentMessageId: replyingTo._id }),
+    };
+
+    try {
+      socket.current.emit("send_message", messageData, (response) => {
+        if (response.status === "success") {
+          setNewMessage("");
+          setReplyingTo(null);
+        } else {
+          console.error("Erro ao enviar mensagem:", response.message);
+          alert(`Falha ao enviar mensagem: ${response.message}`);
+        }
+      });
+    } catch (error) {
+      console.error("Send message error:", error);
+      alert("Failed to send message. Please try again.");
+    }
+  };
 
   return (
     <ChatContainer>
-      <Header>FURIA CHAT</Header>
+      <Header>CHAT FURIOSO - {user?.username}</Header>
 
+      {/* Live Match Panel added here */}
       <LiveMatchPanel />
 
-      {cheerCount > 0 && (
-        <CheerBanner>
-          🔥 {cheerCount} gritos! ({lastCheerUser})
-        </CheerBanner>
+      {replyingTo && (
+        <ReplyIndicator>
+          <span>Respondendo a: {replyingTo.username}</span>
+          <CloseButton onClick={() => setReplyingTo(null)}>×</CloseButton>
+        </ReplyIndicator>
       )}
 
       <MessageList>
-        {messages.map((m) => (
-          <Message
-            key={m._id}
-            message={{
-              ...m,
-              parentMessagePreview: m.parentMessageId
-                ? messages.find((msg) => msg._id === m.parentMessageId)
-                : null,
-            }}
-            currentUser={localUsername}
-            onReply={handleReply}
-          />
-        ))}
-        <div ref={endRef} />
+        {isLoading ? (
+          <div style={{ textAlign: "center", color: "#aaa" }}>
+            Carregando mensagens...
+          </div>
+        ) : (
+          messages.map((message) => (
+            <Message
+              key={message._id}
+              message={{
+                ...message,
+                time: new Date(message.createdAt).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                }),
+              }}
+              currentUser={user?.username}
+              onEdit={handleEditMessage}
+              onDelete={handleDeleteMessage}
+              onReact={handleReaction}
+              onReply={handleReplyToMessage}
+            />
+          ))
+        )}
+        <div ref={messagesEndRef} />
       </MessageList>
 
-      <InputContainer onSubmit={handleSend}>
-        {replyingTo && (
-          <div className="reply-preview">
-            Respondendo a: {messages.find((m) => m._id === replyingTo)?.message}
-            <button onClick={() => setReplyingTo(null)}>×</button>
-          </div>
-        )}
+      <InputContainer onSubmit={handleSubmit}>
         <MessageInput
-          value={newMsg}
-          onChange={(e) => setNewMsg(e.target.value)}
-          placeholder="Envie uma mensagem..."
+          value={newMessage}
+          onChange={(e) => setNewMessage(e.target.value)}
+          placeholder={
+            replyingTo
+              ? `Respondendo a ${replyingTo.username}...`
+              : "Digite sua mensagem..."
+          }
+          disabled={isLoading}
         />
-        <CheerButton
-          onClick={() => socket?.emit("send_cheer")}
-          type="button"
-          disabled={!socket?.connected}
-        >
-          🔥
-        </CheerButton>
-        <SendButton type="submit" disabled={!socket?.connected}>
-          ENVIAR
+        <SendButton type="submit" disabled={isLoading || !newMessage.trim()}>
+          Enviar
         </SendButton>
       </InputContainer>
     </ChatContainer>
   );
 }
-
-export default ChatPage;

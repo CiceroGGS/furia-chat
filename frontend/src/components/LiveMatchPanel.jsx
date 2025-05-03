@@ -6,7 +6,7 @@ import teamLiguid from "../../../frontend/src/assets/team-liguid-logo.png";
 import fazeClan from "../../../frontend/src/assets/Faze_Clan-logo.webp";
 
 const getMockData = () => {
-  const opponents = ["Team Liquid", "FaZe Clan", "Natus Vincere"];
+  const opponents = ["Team Liquid", "FaZe Clan"];
   const opponent = opponents[Math.floor(Math.random() * opponents.length)];
   return {
     team1: {

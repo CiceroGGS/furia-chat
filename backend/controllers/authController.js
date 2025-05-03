@@ -1,50 +1,67 @@
+// backend/controllers/authController.js
 const User = require("../models/user");
 const jwt = require("jsonwebtoken");
 
 const registerUser = async (req, res) => {
-  const { username, email, password } = req.body;
-
   try {
-    const existingUser = await User.findOne({ username });
-    if (existingUser) {
-      return res.status(400).json({ message: "Nome de usuário já existe" });
+    const { username, password } = req.body;
+
+    // Validação básica
+    if (!username || !password) {
+      return res
+        .status(400)
+        .json({ message: "Username e senha são obrigatórios" });
     }
 
-    const newUser = new User({ username, email, password });
+    const existingUser = await User.findOne({ username });
+    if (existingUser) {
+      return res.status(400).json({ message: "Usuário já existe" });
+    }
+
+    const newUser = new User({ username, password });
     await newUser.save();
 
-    res.status(201).json({ message: "Usuário registrado com sucesso!" });
+    res.status(201).json({
+      message: "Usuário registrado com sucesso!",
+      username: newUser.username,
+    });
   } catch (error) {
     console.error("Erro no registro:", error);
-    res.status(500).json({ message: "Erro no servidor" });
+    res.status(500).json({ message: "Erro no servidor", error: error.message });
   }
 };
 
 const loginUser = async (req, res) => {
-  const { username, password } = req.body;
-
   try {
-    const user = await User.findOne({ username });
-    if (!user) {
-      return res.status(400).json({ message: "Usuário não encontrado" });
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+      return res.status(400).json({ message: "Credenciais inválidas" });
     }
 
-    const isMatch = await user.comparePassword(password);
-    if (!isMatch) {
-      return res.status(400).json({ message: "Senha incorreta" });
+    const user = await User.findOne({ username });
+    if (!user || !(await user.comparePassword(password))) {
+      return res.status(401).json({ message: "Credenciais inválidas" });
     }
 
     const token = jwt.sign(
       { userId: user._id, username: user.username },
       process.env.JWT_SECRET,
-      { expiresIn: "7d" }
+      { expiresIn: "1h" }
     );
 
-    res.json({ token, username: user.username, userId: user._id });
+    res.json({
+      message: "Login bem-sucedido",
+      token,
+      username: user.username,
+    });
   } catch (error) {
     console.error("Erro no login:", error);
-    res.status(500).json({ message: "Erro no servidor" });
+    res.status(500).json({ message: "Erro no servidor", error: error.message });
   }
 };
 
-module.exports = { registerUser, loginUser };
+module.exports = {
+  registerUser,
+  loginUser,
+};
