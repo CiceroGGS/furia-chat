@@ -1,7 +1,6 @@
-// frontend/src/components/LiveMatchPanel.jsx
 import React, { useEffect, useState } from "react";
 import styled, { keyframes, css } from "styled-components";
-import furiaLogo from "../../../frontend/src/assets/furia-esports-logo.png"; // Ajuste o caminho se necessário
+import furiaLogo from "../../../frontend/src/assets/furia-esports-logo.png";
 import teamLiguid from "../../../frontend/src/assets/team-liguid-logo.png";
 import fazeClan from "../../../frontend/src/assets/Faze_Clan-logo.webp";
 

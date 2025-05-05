@@ -1,4 +1,3 @@
-// backend/routes/liveMatchRoutes.js
 const express = require("express");
 const HLTV = require("hltv");
 const router = express.Router();

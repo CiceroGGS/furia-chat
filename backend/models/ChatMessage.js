@@ -34,9 +34,8 @@ const chatMessageSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "ChatMessage",
       populate: {
-        // Adicione esta seção de populate
         path: "userId",
-        select: "username", // Inclua o username do author da mensagem pai
+        select: "username",
       },
     },
     edited: {
@@ -61,7 +60,6 @@ const chatMessageSchema = new mongoose.Schema(
   }
 );
 
-// Adicione este método para facilitar a busca de mensagens antigas
 chatMessageSchema.statics.getRecentMessages = async function (limit = 50) {
   return this.find({ deleted: false })
     .sort({ createdAt: -1 })
@@ -72,9 +70,8 @@ chatMessageSchema.statics.getRecentMessages = async function (limit = 50) {
     })
     .populate({
       path: "parentMessageId",
-      select: "username message createdAt userId", // Inclua userId
+      select: "username message createdAt userId",
       populate: {
-        // Popule o userId da mensagem pai, se necessário.
         path: "userId",
         select: "username",
       },

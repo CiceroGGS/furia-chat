@@ -1,4 +1,3 @@
-// backend/controllers/authController.js
 const User = require("../models/user");
 const jwt = require("jsonwebtoken");
 
@@ -6,7 +5,6 @@ const registerUser = async (req, res) => {
   try {
     const { username, password } = req.body;
 
-    // Validação básica
     if (!username || !password) {
       return res
         .status(400)

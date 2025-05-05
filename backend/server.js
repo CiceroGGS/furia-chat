@@ -42,7 +42,6 @@ const io = new Server(server, {
   },
 });
 
-// Middleware de autenticação Socket.IO
 io.use((socket, next) => {
   const token = socket.handshake.auth.token;
   if (!token) return next(new Error("Autenticação necessária"));
@@ -54,7 +53,6 @@ io.use((socket, next) => {
   });
 });
 
-// Middleware para anexar 'io' ao 'req'
 app.use((req, res, next) => {
   req.io = io;
   next();
@@ -62,7 +60,7 @@ app.use((req, res, next) => {
 
 // Rotas
 app.use("/api/auth", authRoutes);
-app.use("/api/chat", chatRoutes); // Certifique-se de que chatRoutes está sendo usado DEPOIS do middleware acima
+app.use("/api/chat", chatRoutes);
 app.use("/api/match-live", liveMatchRoutes);
 
 // Eventos Socket.IO
@@ -80,11 +78,10 @@ io.on("connection", (socket) => {
 
       const savedMessage = await newMessage.save();
 
-      // Popule o parentMessageId ANTES de emitir o evento
       const populatedMessage = await ChatMessage.findById(savedMessage._id)
         .populate({
           path: "parentMessageId",
-          select: "username message userId", // Inclua userId aqui
+          select: "username message userId",
           populate: {
             path: "userId",
             select: "username",
@@ -92,7 +89,7 @@ io.on("connection", (socket) => {
         })
         .lean();
 
-      io.emit("new_message", populatedMessage); // Envie a mensagem populada
+      io.emit("new_message", populatedMessage);
       callback({ status: "success" });
     } catch (error) {
       console.error("Erro ao enviar mensagem:", error);

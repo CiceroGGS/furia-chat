@@ -1,4 +1,3 @@
-// backend/routes/chatRoutes.js
 const express = require("express");
 const router = express.Router();
 const authenticateToken = require("../middleware/auth");
