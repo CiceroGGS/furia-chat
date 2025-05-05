@@ -1,168 +1,145 @@
-# FURIA Chat - A Comunidade Conectada
+# FURIA CHAT
 
-Este é o repositório da aplicação FURIA Chat, um espaço dedicado para a torcida da FURIA Esports se conectar, interagir e vibrar junta durante as partidas e eventos. O projeto consiste em um frontend construído com React e um backend robusto utilizando Node.js, Express e Socket.IO para comunicação em tempo real.
-
-## Visão Geral
-
-O FURIA Chat oferece uma experiência de chat em tempo real com diversas funcionalidades engajadoras:
-
-- **Mensagens em Tempo Real:** Troca de mensagens instantânea entre torcedores.
-- **Comandos Especiais:** Utilize comandos como `!help`, `!cheer`, `!stats` e `!furia` para interagir de maneiras únicas.
-- **Reações:** Demonstre seu apoio e emoção com reações às mensagens.
-- **Respostas:** Responda diretamente a mensagens de outros usuários para manter o contexto da conversa.
-- **Edição e Exclusão de Mensagens:** Tenha controle sobre suas próprias mensagens.
-- **Menções:** Responda a usuários específicos para direcionar a conversa.
-- **Painel de Partida ao Vivo:** Acompanhe informações em tempo real sobre as partidas da FURIA.
-- **Badges de Conquistas:** Desbloqueie e exiba conquistas especiais.
-- **Gritos de Guerra:** Envie "cheers" para mostrar seu apoio fervoroso.
-- **Persistência de Dados:** Histórico de mensagens armazenado para não perder a conversa.
-- **API para o Frontend:** Backend fornece os dados e a comunicação para a interface do usuário.
-
-## Estrutura de Pastas
-
-furia-chat/
-├── backend/
-│   ├── config/
-│   │   └── database.js
-│   ├── controllers/
-│   │   └── chatController.js
-│   ├── models/
-│   │   └── message.js
-│   ├── routes/
-│   │   └── chatRoutes.js
-│   ├── services/
-│   │   └── chatService.js
-│   ├── sockets/
-│   │   └── socketHandler.js
-│   ├── utils/
-│   │   └── ...
-│   ├── server.js
-│   ├── package-lock.json
-│   └── package.json
-└── frontend/
-├── public/
-│   └── ... (arquivos estáticos)
-└── src/
-├── assets/
-│   ├── Faze_Clan-logo.webp
-│   ├── furia-esports-logo.png
-│   ├── react.svg
-│   └── team-liguid-logo.png
-├── components/
-│   ├── AchievementBadge.jsx
-│   ├── LiveEvent.jsx
-│   ├── LiveMatchPanel.jsx
-│   ├── LiveMatchPanel.module.css
-│   ├── Message.jsx
-│   └── ...
-├── pages/
-│   └── ChatPage.jsx
-├── services/
-│   └── esportsAPI.js
-├── styles/
-│   ├── ChatStyle.js
-│   └── ...
-├── App.css
-├── App.jsx
-├── index.css
-├── main.jsx
-└── ...
-├── .gitignore
-├── README.md        <-- Este arquivo
-├── eslint.config.js
-├── index.html
-├── package-lock.json
-├── package.json
-└── vite.config.js
-
+Este é um projeto de aplicação de chat em tempo real, que permite aos usuários registrar-se, fazer login e trocar mensagens com outros usuários. Ele utiliza WebSocket para comunicação em tempo real e permite o envio de mensagens, respostas, edição, exclusão e reações.
 
 ## Tecnologias Utilizadas
 
-### Frontend
+- **Frontend:**
+  - React
+  - Styled-components
+  - React Router
+  - Socket.IO (para WebSocket)
+  
+- **Backend:**
+  - Node.js
+  - Express
+  - MongoDB
+  - Socket.IO (para WebSocket)
+  
+- **Autenticação:**
+  - JSON Web Token (JWT)
 
--   **React (v19.0.0):** Biblioteca JavaScript para construção de interfaces de usuário.
--   **React DOM (v19.0.0):** Ponto de entrada para o DOM do React.
--   **React Router DOM (v7.5.2):** Para gerenciamento de rotas (se aplicável).
--   **React Transition Group (v4.4.5):** Para animações e transições.
--   **Styled Components (v6.1.17):** Para estilização de componentes com CSS-in-JS.
--   **Sass (v1.87.0):** Pré-processador CSS.
--   **Socket.IO Client (v4.8.1):** Para comunicação em tempo real com o backend.
--   **Axios (v1.9.0):** Cliente HTTP para requisições de API.
--   **Vite (v6.3.1):** Ferramenta de build e servidor de desenvolvimento rápido.
--   **ESLint (v9.22.0):** Linter para qualidade do código JavaScript.
+## Funcionalidades
 
-### Backend
+- **Cadastro de Usuário:** Permite que um novo usuário crie uma conta e faça login.
+- **Login de Usuário:** Permite que um usuário registrado faça login no sistema.
+- **Chat em Tempo Real:** Usuários podem trocar mensagens em tempo real.
+- **Respostas a Mensagens:** Usuários podem responder a mensagens específicas.
+- **Edição de Mensagens:** Usuários podem editar mensagens enviadas.
+- **Exclusão de Mensagens:** Usuários podem excluir mensagens enviadas.
+- **Reações a Mensagens:** Usuários podem adicionar reações (emojis) às mensagens.
 
--   **Node.js:** Ambiente de execução JavaScript para o servidor.
--   **Express (v4.18.2):** Framework web para Node.js.
--   **Socket.IO (v4.7.4):** Biblioteca para comunicação bidirecional em tempo real.
--   **MongoDB (via Mongoose v8.4.1):** Banco de dados NoSQL.
--   **Mongoose (v8.4.1):** Biblioteca de modelagem de objetos MongoDB.
--   **Cors (v2.8.5):** Middleware para habilitar CORS.
--   **Nodemon (v3.1.0):** Ferramenta para reiniciar o servidor em desenvolvimento.
--   **Dotenv (v16.4.7):** Para carregar variáveis de ambiente.
+## Instruções de Instalação
 
-## Configuração e Execução
+### Pré-requisitos
 
-Para executar o projeto localmente, siga os passos abaixo:
+- Node.js (v16 ou superior)
+- MongoDB (ou use uma solução de banco de dados em nuvem como MongoDB Atlas)
 
-1.  **Clone o repositório:**
-    ```bash
-    git clone [https://docs.github.com/articles/referencing-and-citing-content](https://docs.github.com/articles/referencing-and-citing-content)
-    cd furia-chat
-    ```
+### Instalação
 
-2.  **Configure o Backend:**
-    -   Navegue até a pasta `backend`: `cd backend`
-    -   Instale as dependências: `npm install` (ou `yarn install` / `pnpm install`)
-    -   Crie um arquivo `.env` com as configurações (porta, URI do MongoDB, etc.).
-    -   Inicie o servidor de desenvolvimento: `npm run dev` (ou `yarn dev` / `pnpm dev`). O servidor estará rodando em `http://localhost:5000` (ou a porta configurada).
+1. Clone o repositório:
 
-3.  **Configure o Frontend:**
-    -   Navegue até a pasta `frontend`: `cd ../frontend`
-    -   Instale as dependências: `npm install` (ou `yarn install` / `pnpm install`)
-    -   Inicie o servidor de desenvolvimento: `npm run dev` (ou `yarn dev` / `pnpm dev`). O frontend geralmente roda em `http://localhost:5173`.
+   ```bash
+   git clone https://github.com/seu-usuario/chat-app.git
+Navegue até o diretório do backend e instale as dependências:
 
-Certifique-se de ter o Node.js e o MongoDB instalados em sua máquina.
+bash
+Copy
+Edit
+cd backend
+npm install
+Navegue até o diretório do frontend e instale as dependências:
 
-## Scripts Disponíveis
+bash
+Copy
+Edit
+cd frontend
+npm install
+Configure o MongoDB e o JWT:
 
-### Backend
+Crie um banco de dados no MongoDB.
 
-No diretório `backend`:
+Defina a chave secreta do JWT no backend (adicione JWT_SECRET ao arquivo .env).
 
--   `start`: Inicia o servidor em modo de produção.
--   `dev`: Inicia o servidor em modo de desenvolvimento com `nodemon`.
+Execute o servidor:
 
-### Frontend
+No backend:
 
-No diretório `frontend`:
+bash
+Copy
+Edit
+cd backend
+npm start
+No frontend:
 
--   `dev`: Inicia o servidor de desenvolvimento Vite.
--   `build`: Compila o projeto para produção.
--   `lint`: Executa o ESLint.
--   `preview`: Inicia um servidor de pré-visualização da build de produção.
+bash
+Copy
+Edit
+cd frontend
+npm start
+Abra o navegador e acesse a aplicação em:
 
-## Endpoints da API (Backend)
+arduino
+Copy
+Edit
+http://localhost:3000
+Variáveis de Ambiente
+Crie um arquivo .env na raiz do seu diretório backend e defina as variáveis abaixo:
 
--   `/api/chat`: `GET` - Retorna o histórico de mensagens do chat.
--   `/api/match-live`: `GET` - Retorna informações sobre a partida ao vivo (se implementado).
--   `/api/chat/:id`: `PATCH` - Edita uma mensagem específica.
--   `/api/chat/:id`: `DELETE` - Exclui uma mensagem específica.
--   `/api/chat/:id/react`: `POST` - Adiciona uma reação a uma mensagem.
+bash
+Copy
+Edit
+MONGO_URI=mongodb://localhost:27017/chatApp
+JWT_SECRET=sua-chave-secreta-aqui
+Como Usar
+Registro:
 
-## Socket.IO Events (Backend)
+Acesse a página de registro e crie uma conta com um nome de usuário e senha.
 
--   `connection`: Novo cliente conectado.
--   `disconnect`: Cliente desconectado.
--   `send_message`: Recebe e transmite novas mensagens.
--   `send_cheer`: Recebe e atualiza a contagem de cheers.
--   `edit_message`: Recebe e processa edições de mensagens.
--   `delete_message`: Recebe e processa exclusões de mensagens.
--   `react_message`: Recebe e processa reações a mensagens.
--   `initial_messages`: Envia o histórico de mensagens para novos clientes.
--   `new_message`: Emite novas mensagens para todos os clientes.
--   `cheer_update`: Emite atualizações da contagem de cheers.
-6
+Login:
 
-**#GoFURIA** 🐆🔥
+Após o registro, faça login com as credenciais criadas.
+
+Chat:
+
+Após o login, você será redirecionado para a página de chat, onde poderá enviar mensagens em tempo real, responder a mensagens e interagir com outras pessoas.
+
+Edição e Exclusão de Mensagens:
+
+Clique em uma mensagem para editá-la ou excluí-la.
+
+Reações:
+
+Adicione emojis como reações às mensagens para mostrar sua resposta.
+
+Estrutura de Diretórios
+bash
+Copy
+Edit
+chat-app/
+├── backend/
+│   ├── controllers/    # Controladores para as rotas do backend
+│   ├── models/         # Modelos do banco de dados (usuário, mensagens)
+│   ├── routes/         # Definição das rotas do backend
+│   ├── server.js       # Arquivo principal do servidor
+│   └── .env            # Configurações de ambiente (JWT, MongoDB)
+├── frontend/
+│   ├── components/     # Componentes React (formulários, mensagens, chat)
+│   ├── contexts/       # Contextos React para gerenciar autenticação
+│   ├── pages/          # Páginas do frontend (login, registro, chat)
+│   ├── styles/         # Estilos com styled-components
+│   ├── App.js          # Arquivo principal do React
+│   └── index.js        # Ponto de entrada do React
+├── README.md           # Este arquivo
+└── package.json        # Dependências e scripts
+Contribuindo
+Faça um fork deste repositório.
+
+Crie uma branch para a sua funcionalidade (git checkout -b feature/nome-da-funcionalidade).
+
+Faça commit das suas alterações (git commit -m 'Adiciona nova funcionalidade').
+
+Envie para o repositório remoto (git push origin feature/nome-da-funcionalidade).
+
+Abra um pull request.
