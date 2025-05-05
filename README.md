@@ -1,140 +1,167 @@
-# FURIA CHAT
+# 💬 FURIA CHAT
 
-Este é um projeto de aplicação de chat em tempo real, que permite aos usuários registrar-se, fazer login e trocar mensagens com outros usuários. Ele utiliza WebSocket para comunicação em tempo real e permite o envio de mensagens, respostas, edição, exclusão e reações.
+Este é um projeto de aplicação de chat em tempo real, que permite aos usuários registrar-se, fazer login e trocar mensagens com outros usuários. Ele utiliza **WebSocket** para comunicação em tempo real e possui funcionalidades como envio de mensagens, respostas, edição, exclusão e reações com emojis.
 
-## Tecnologias Utilizadas
+---
 
-- **Frontend:**
-  - React
-  - Styled-components
-  - React Router
-  - Socket.IO (para WebSocket)
-  
-- **Backend:**
-  - Node.js
-  - Express
-  - MongoDB
-  - Socket.IO (para WebSocket)
-  
-- **Autenticação:**
-  - JSON Web Token (JWT)
+## 🚀 Tecnologias Utilizadas
 
-## Funcionalidades
+### 🖥️ Frontend
+- React
+- Styled-components
+- React Router
+- Socket.IO (WebSocket)
 
-- **Cadastro de Usuário:** Permite que um novo usuário crie uma conta e faça login.
-- **Login de Usuário:** Permite que um usuário registrado faça login no sistema.
-- **Chat em Tempo Real:** Usuários podem trocar mensagens em tempo real.
-- **Respostas a Mensagens:** Usuários podem responder a mensagens específicas.
-- **Edição de Mensagens:** Usuários podem editar mensagens enviadas.
-- **Exclusão de Mensagens:** Usuários podem excluir mensagens enviadas.
-- **Reações a Mensagens:** Usuários podem adicionar reações (emojis) às mensagens.
+### 🧠 Backend
+- Node.js
+- Express
+- MongoDB
+- Socket.IO (WebSocket)
 
-## Instruções de Instalação
+### 🔐 Autenticação
+- JSON Web Token (JWT)
 
-### Pré-requisitos
+---
 
+## ✨ Funcionalidades
+
+- ✅ Cadastro de Usuário
+- ✅ Login de Usuário
+- 💬 Chat em Tempo Real
+- 💬 Respostas a Mensagens
+- ✏️ Edição de Mensagens
+- 🗑️ Exclusão de Mensagens
+- 😄 Reações com Emojis
+
+---
+
+## 📦 Instruções de Instalação
+
+### ⚙️ Pré-requisitos
 - Node.js (v16 ou superior)
-- MongoDB (ou use uma solução de banco de dados em nuvem como MongoDB Atlas)
+- MongoDB (pode ser local ou MongoDB Atlas)
 
-### Instalação
+### 📥 Instalação
 
-1. Clone o repositório:
+```bash
+# 1. Clone o repositório:
+git clone https://github.com/seu-usuario/furia-chat.git
 
-   ```bash
-   git clone https://github.com/seu-usuario/chat-app.git
-Navegue até o diretório do backend e instale as dependências:
-
-bash
-Copy
-Edit
-cd backend
+# 2. Instale as dependências do backend:
+cd furia-chat/backend
 npm install
-Navegue até o diretório do frontend e instale as dependências:
 
-bash
-Copy
-Edit
-cd frontend
+# 3. Instale as dependências do frontend:
+cd ../frontend
 npm install
-Configure o MongoDB e o JWT:
+```
 
-Crie um banco de dados no MongoDB.
+### ⚙️ Configuração de Ambiente (Backend)
 
-Defina a chave secreta do JWT no backend (adicione JWT_SECRET ao arquivo .env).
+Crie um arquivo `.env` dentro da pasta `backend` com o seguinte conteúdo:
 
-Execute o servidor:
-
-No backend:
-
-cd backend
-node server.js
-
-No frontend:
-cd frontend
-npm run dev
-
-Abra o navegador e acesse a aplicação em:
-
-(http://localhost:5173/)
-
-Variáveis de Ambiente
-Crie um arquivo .env na raiz do seu diretório backend e defina as variáveis abaixo:
-
+```env
 MONGO_URI=mongodb://localhost:27017/chatApp
 JWT_SECRET=sua-chave-secreta-aqui
-Como Usar
-Registro:
+```
 
-Acesse a página de registro e crie uma conta com um nome de usuário e senha.
+---
 
-Login:
+## ▶️ Como Rodar o Projeto
 
-Após o registro, faça login com as credenciais criadas.
+### 🔙 Backend
 
-Chat:
+```bash
+cd backend
+node server.js
+```
 
-Após o login, você será redirecionado para a página de chat, onde poderá enviar mensagens em tempo real, responder a mensagens e interagir com outras pessoas.
+### 🔜 Frontend
 
-Edição e Exclusão de Mensagens:
+```bash
+cd frontend
+npm run dev
+```
 
-Clique em uma mensagem para editá-la ou excluí-la.
+Abra seu navegador e acesse: [http://localhost:5173](http://localhost:5173)
 
-Reações:
+---
 
-Adicione emojis como reações às mensagens para mostrar sua resposta.
+## 🧪 Como Usar
+
+### 👤 Registro
+- Acesse `/register`
+- Crie uma conta com nome de usuário e senha
+
+### 🔐 Login
+- Acesse `/login`
+- Faça login com as credenciais criadas
+
+### 💬 Chat
+- Após o login, você será redirecionado para a página do chat
+- Envie mensagens em tempo real
+- Responda mensagens específicas
+- Edite ou exclua suas mensagens
+- Reaja com emojis às mensagens
+
+---
 
 ## 📁 Estrutura de Pastas
 
+```
 furia-chat/
 ├── backend/
-│   ├── controllers/    # Controladores para as rotas do backend
-│   ├── models/         # Modelos do banco de dados (usuário, mensagens)
-│   ├── routes/         # Definição das rotas do backend
-│   ├── server.js       # Arquivo principal do servidor
-│   └── .env            # Configurações de ambiente (JWT, MongoDB)
+│   ├── controllers/       # Controladores das rotas
+│   ├── models/            # Modelos Mongoose (usuário, mensagem)
+│   ├── routes/            # Definição das rotas
+│   ├── server.js          # Arquivo principal do backend
+│   └── .env               # Variáveis de ambiente
 ├── frontend/
-│   ├── components/     # Componentes React (formulários, mensagens, chat)
-│   ├── contexts/       # Contextos React para gerenciar autenticação
-│   ├── pages/          # Páginas do frontend (login, registro, chat)
-│   ├── styles/         # Estilos com styled-components
-│   ├── App.js          # Arquivo principal do React
-│   └── index.js        # Ponto de entrada do React
-├── README.md           # Este arquivo
-└── package.json        # Dependências e scripts
+│   ├── components/        # Componentes React (chat, formulário etc.)
+│   ├── contexts/          # Contexto de autenticação
+│   ├── pages/             # Páginas (Login, Registro, Chat)
+│   ├── styles/            # Estilos com styled-components
+│   ├── App.js             # Arquivo principal do frontend
+│   └── index.js           # Ponto de entrada do React
+├── README.md              # Este arquivo
+└── package.json           # Dependências e scripts principais
+```
 
+---
 
-### 📝 Observações
-- O projeto é dividido entre `backend` e `frontend`, facilitando a manutenção e escalabilidade.
-- Utiliza MongoDB no backend com Mongoose para modelagem de dados.
-- O frontend é estruturado com boas práticas, usando componentes, hooks e contextos para uma melhor organização.
+## 🤝 Contribuindo
 
-Contribuindo
-Faça um fork deste repositório.
+```bash
+# 1. Faça um fork deste repositório
+# 2. Crie uma nova branch
+git checkout -b feature/nova-funcionalidade
 
-Crie uma branch para a sua funcionalidade (git checkout -b feature/nome-da-funcionalidade).
+# 3. Faça suas alterações e commit
+git commit -m "Adiciona nova funcionalidade"
 
-Faça commit das suas alterações (git commit -m 'Adiciona nova funcionalidade').
+# 4. Envie a branch para o repositório remoto
+git push origin feature/nova-funcionalidade
 
-Envie para o repositório remoto (git push origin feature/nome-da-funcionalidade).
+# 5. Abra um Pull Request 🚀
+```
 
-Abra um pull request.
+---
+
+## 📝 Observações Finais
+
+- A aplicação está dividida em frontend e backend, facilitando a manutenção.
+- A arquitetura do frontend usa componentes reutilizáveis e contexto para autenticação.
+- O backend usa Mongoose para interagir com o MongoDB.
+- A comunicação em tempo real é feita com Socket.IO.
+- Todo o fluxo de autenticação é feito com JWT de forma segura.
+
+---
+
+## 📫 Contato
+
+Caso queira contribuir, relatar bugs ou sugerir melhorias, entre em contato:
+
+- GitHub: [github.com/CiceroGGS](https://github.com/CiceroGGS)
+- Email: cicerog.silvestre@gmail.com
+
+---
