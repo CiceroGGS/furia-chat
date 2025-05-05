@@ -113,26 +113,36 @@ Reações:
 
 Adicione emojis como reações às mensagens para mostrar sua resposta.
 
-Estrutura de Diretórios
-bash
-Copy
-Edit
-chat-app/
-├── backend/
-│   ├── controllers/    # Controladores para as rotas do backend
-│   ├── models/         # Modelos do banco de dados (usuário, mensagens)
-│   ├── routes/         # Definição das rotas do backend
-│   ├── server.js       # Arquivo principal do servidor
-│   └── .env            # Configurações de ambiente (JWT, MongoDB)
-├── frontend/
-│   ├── components/     # Componentes React (formulários, mensagens, chat)
-│   ├── contexts/       # Contextos React para gerenciar autenticação
-│   ├── pages/          # Páginas do frontend (login, registro, chat)
-│   ├── styles/         # Estilos com styled-components
-│   ├── App.js          # Arquivo principal do React
-│   └── index.js        # Ponto de entrada do React
-├── README.md           # Este arquivo
-└── package.json        # Dependências e scripts
+## 📁 Estrutura de Pastas
+
+furia-chat/
+├── backend/ # Servidor backend em Node.js com Express
+│ ├── controllers/ # Lógica das rotas e manipulação de dados
+│ ├── middleware/ # Middlewares personalizados (ex: autenticação, logs)
+│ ├── models/ # Modelos de dados com Mongoose (MongoDB)
+│ ├── routes/ # Definições de rotas da API
+│ └── server.js # Ponto de entrada do servidor backend
+│
+├── frontend/ # Aplicação frontend em React
+│ ├── public/ # Arquivos estáticos públicos
+│ ├── src/
+│ │ ├── assets/ # Imagens, ícones e outros recursos estáticos
+│ │ ├── components/ # Componentes reutilizáveis do React
+│ │ ├── contexts/ # Contextos globais (ex: autenticação)
+│ │ ├── hooks/ # Hooks personalizados
+│ │ ├── pages/ # Páginas principais da aplicação
+│ │ ├── routes/ # Rotas da aplicação React
+│ │ ├── styles/ # Estilos globais e específicos por componente
+│ │ └── App.jsx # Componente raiz da aplicação
+│ └── ...
+│
+└── README.md # Documentação do projeto
+
+### 📝 Observações
+- O projeto é dividido entre `backend` e `frontend`, facilitando a manutenção e escalabilidade.
+- Utiliza MongoDB no backend com Mongoose para modelagem de dados.
+- O frontend é estruturado com boas práticas, usando componentes, hooks e contextos para uma melhor organização.
+
 Contribuindo
 Faça um fork deste repositório.
 
